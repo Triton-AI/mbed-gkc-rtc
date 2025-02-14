@@ -10,9 +10,21 @@
 
 namespace tritonai::gkc {
 
+    // Initialize CAN interfaces with the corresponding RX/TX pins and baud rates.
     CAN can1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
     CAN can2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
 
+    /**
+     * @brief Transmits a CAN message with an extended ID.
+     *
+     * This function dynamically allocates a CANMessage with the given
+     * id, data, and length, and then attempts to send it using the CAN2 interface.
+     * If the transmission fails, it resets the interface and sets the correct baud rate.
+     *
+     * @param id The extended identifier for the CAN message.
+     * @param data Pointer to the data payload.
+     * @param len Number of bytes in the data payload.
+     */
     static void can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len) {
         CANMessage *cMsg;
         cMsg = new CANMessage(id, data, len, CANData, CANExtended);
@@ -39,11 +51,31 @@ namespace tritonai::gkc {
         CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
     } CAN_PACKET_ID;
 
+    /**
+     * @brief Append a 16-bit integer to a buffer in big-endian format.
+     *
+     * This function writes the most significant byte first followed by the least
+     * significant byte to the provided buffer at the position indicated by index.
+     *
+     * @param buffer The target buffer.
+     * @param number The 16-bit integer to append.
+     * @param index Pointer to the current buffer index; it is incremented accordingly.
+     */
     void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index) {
         buffer[(*index)++] = number >> 8;
         buffer[(*index)++] = number;
     }
 
+    /**
+     * @brief Append a 32-bit integer to a buffer in big-endian format.
+     *
+     * This function writes the 32-bit integer byte-by-byte starting from the most
+     * significant byte to the least significant byte.
+     *
+     * @param buffer The target buffer.
+     * @param number The 32-bit integer to append.
+     * @param index Pointer to the current buffer index; it is incremented accordingly.
+     */
     void buffer_append_int32(uint8_t* buffer, int32_t number, int32_t *index) {
         buffer[(*index)++] = number >> 24;
         buffer[(*index)++] = number >> 16;
@@ -51,15 +83,47 @@ namespace tritonai::gkc {
         buffer[(*index)++] = number;
     }
 
+    /**
+     * @brief Append a scaled float as a 16-bit integer to a buffer.
+     *
+     * The float is multiplied by the provided scale factor, converted to an int16,
+     * and appended to the buffer in big-endian format.
+     *
+     * @param buffer The target buffer.
+     * @param number The float value to be scaled and appended.
+     * @param scale The scale factor to apply before conversion.
+     * @param index Pointer to the current buffer index; it is incremented accordingly.
+     */
     void buffer_append_float16(uint8_t* buffer, float number, float scale, int32_t *index) {
         buffer_append_int16(buffer, (int16_t)(number * scale), index);
     }
 
+    /**
+     * @brief Append a scaled float as a 32-bit integer to a buffer.
+     *
+     * The float is multiplied by the provided scale factor, converted to an int32,
+     * and appended to the buffer in big-endian format.
+     *
+     * @param buffer The target buffer.
+     * @param number The float value to be scaled and appended.
+     * @param scale The scale factor to apply before conversion.
+     * @param index Pointer to the current buffer index; it is incremented accordingly.
+     */
     void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *index) {
         buffer_append_int32(buffer, (int32_t)(number * scale), index);
     }
 
     // Message sending functions.
+
+    /**
+     * @brief Sends a CAN message to set the motor duty cycle.
+     *
+     * This function prepares a 4-byte buffer containing the duty cycle (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_DUTY identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param duty The duty cycle value to set.
+     */
     void comm_can_set_duty(uint8_t controller_id, float duty) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -68,6 +132,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_DUTY << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set the motor current.
+     *
+     * This function prepares a 4-byte buffer containing the current (scaled) and
+     * sends it over CAN using the CAN_PACKET_SET_CURRENT identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current The current value to set.
+     */
     void comm_can_set_current(uint8_t controller_id, float current) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -76,6 +149,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set the motor brake current.
+     *
+     * This function prepares a 4-byte buffer containing the brake current (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_CURRENT_BRAKE identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current The brake current value to set.
+     */
     void comm_can_set_current_brake(uint8_t controller_id, float current) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -84,6 +166,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set the motor RPM.
+     *
+     * This function prepares a 4-byte buffer containing the RPM value and sends it
+     * over CAN using the CAN_PACKET_SET_RPM identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param rpm The RPM value to set.
+     */
     void comm_can_set_rpm(uint8_t controller_id, float rpm) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -92,6 +183,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_RPM << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set the motor position.
+     *
+     * The function converts the provided position to a scaled value, applies an inversion,
+     * and then transmits it using the CAN_PACKET_SET_POS identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param pos The position value to set.
+     */
     void comm_can_set_pos(uint8_t controller_id, float pos) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -100,6 +200,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_POS << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set a relative motor current.
+     *
+     * This function prepares a 4-byte buffer containing the relative current (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_CURRENT_REL identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current_rel The relative current value to set.
+     */
     void comm_can_set_current_rel(uint8_t controller_id, float current_rel) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -109,7 +218,15 @@ namespace tritonai::gkc {
     }
 
     /**
-     * Same as above, but also sets the off delay. Note that this command uses 6 bytes now. The off delay is useful to set to keep the current controller running for a while even after setting currents below the minimum current.
+     * @brief Sends a CAN message to set the motor current with an off delay.
+     *
+     * Same as above, but also sets the off delay. Note that this command uses 6 bytes now. 
+     * The off delay is useful to set to keep the current controller running for a while even 
+     * after setting currents below the minimum current.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current The current value to set.
+     * @param off_delay The off delay time.
      */
     void comm_can_set_current_off_delay(uint8_t controller_id, float current, float off_delay) {
         int32_t send_index = 0;
@@ -120,6 +237,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set a relative motor current with an off delay.
+     *
+     * This function prepares a 6-byte buffer containing the scaled relative current and off delay.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current_rel The relative current value to set.
+     * @param off_delay The off delay time.
+     */
     void comm_can_set_current_rel_off_delay(uint8_t controller_id, float current_rel, float off_delay) {
         int32_t send_index = 0;
         uint8_t buffer[6];
@@ -129,6 +255,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT_REL << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set a relative brake current.
+     *
+     * This function prepares a 4-byte buffer containing the relative brake current (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_CURRENT_BRAKE_REL identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current_rel The relative brake current value to set.
+     */
     void comm_can_set_current_brake_rel(uint8_t controller_id, float current_rel) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -137,6 +272,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT_BRAKE_REL << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set the handbrake current.
+     *
+     * This function prepares a 4-byte buffer containing the handbrake current (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_CURRENT_HANDBRAKE identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current The handbrake current value to set.
+     */
     void comm_can_set_handbrake(uint8_t controller_id, float current) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -145,6 +289,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sends a CAN message to set a relative handbrake current.
+     *
+     * This function prepares a 4-byte buffer containing the relative handbrake current (scaled)
+     * and sends it over CAN using the CAN_PACKET_SET_CURRENT_HANDBRAKE_REL identifier.
+     *
+     * @param controller_id The CAN controller identifier.
+     * @param current_rel The relative handbrake current value to set.
+     */
     void comm_can_set_handbrake_rel(uint8_t controller_id, float current_rel) {
         int32_t send_index = 0;
         uint8_t buffer[4];
@@ -153,6 +306,15 @@ namespace tritonai::gkc {
                 ((uint32_t)CAN_PACKET_SET_CURRENT_HANDBRAKE_REL << 8), buffer, send_index);
     }
 
+    /**
+     * @brief Sets the motor speed based on a given speed in m/s.
+     *
+     * This function converts a speed in meters per second to the equivalent electrical RPM (erpm)
+     * using motor and gear ratios along with the wheel circumference. It then sends a CAN message
+     * to set the RPM.
+     *
+     * @param speed_ms Speed in meters per second.
+     */
     void comm_can_set_speed(float speed_ms) { // in m/s
         float motor_poles = 5.0;
         float gear_ratio = 59.0/22.0;

@@ -426,6 +426,15 @@ namespace tritonai::gkc {
         return 0;
     }
 
+    /**
+     * @brief Sets the motor speed based on a given speed in m/s.
+     *
+     * This function converts a speed in meters per second to the equivalent electrical RPM (erpm)
+     * using motor and gear ratios along with the wheel circumference. It then sends a CAN message
+     * to set the RPM.
+     *
+     * @param speed_ms Speed in meters per second.
+     */
     void comm_can_set_angle(float steer_angle) 
     { // in radians
 
@@ -434,6 +443,15 @@ namespace tritonai::gkc {
         comm_can_set_pos(STEER_CAN_ID, rad_to_deg);
     }
 
+     /**
+     * @brief Sends a CAN message to set the brake position.
+     *
+     * This function clamps the brake position between 0.0 and 1.0, scales it to the range
+     * defined by MIN_BRAKE_VAL and MAX_BRAKE_VAL, and then constructs and sends an 8-byte CAN
+     * message with the appropriate format.
+     *
+     * @param brake_position The normalized brake position (0.0 to 1.0).
+     */
     void comm_can_set_brake_position(float brake_position) {
         if(brake_position<0.0) {
             brake_position = 0.0;

@@ -27,12 +27,12 @@
 
 // UART-specific settings
 #define BAUD_RATE 115200
-#define UART_RX_PIN PD_2
-#define UART_TX_PIN PC_12
+#define UART_RX_PIN PB_12
+#define UART_TX_PIN PB_13
 //#define UART_RX_PIN PE_7
 //#define UART_TX_PIN PE_8
-#define REMOTE_UART_TX_PIN PE_0
-#define REMOTE_UART_RX_PIN PE_1
+#define REMOTE_UART_TX_PIN PC_10 // Orange Cable
+#define REMOTE_UART_RX_PIN PC_11 // Purple Cable
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32

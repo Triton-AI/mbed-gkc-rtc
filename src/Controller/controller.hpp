@@ -71,6 +71,8 @@ namespace tritonai::gkc
       bool _stop_on_rc_disconnect{true};
       void set_actuation_values(float throttle, float steering, float brake);
       DigitalOut _led{LED1};
+      DigitalOut _throttle_vesc_disable{THROTTLE_VESC_DISABLE_PIN, 0};
+      DigitalOut _steering_vesc_disable{STEERING_VESC_DISABLE_PIN, 0};
   };
 }
 

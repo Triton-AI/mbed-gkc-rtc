@@ -78,7 +78,7 @@ namespace tritonai::gkc
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
-    _severity(LogPacket::Severity::FATAL), // Initializes the severity of the logger
+    _severity(LogPacket::Severity::BEBUG), // Initializes the severity of the logger
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -341,6 +341,8 @@ namespace tritonai::gkc
   StateTransitionResult Controller::on_deactivate(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller deactivating");
+    _throttle_vesc_disable = 1;
+    _steering_vesc_disable = 1;
     return StateTransitionResult::SUCCESS;
   }
 
@@ -348,6 +350,8 @@ namespace tritonai::gkc
   StateTransitionResult Controller::on_activate(const GkcLifecycle &last_state)
   {
     send_log(LogPacket::Severity::INFO, "Controller activating");
+    _throttle_vesc_disable = 0;
+    _steering_vesc_disable = 0;
     return StateTransitionResult::SUCCESS;
   }
 
@@ -356,6 +360,8 @@ namespace tritonai::gkc
   {
     send_log(LogPacket::Severity::INFO, "Controller emergency stopping");
     set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
+    _throttle_vesc_disable = 1;
+    _steering_vesc_disable = 1;
     return StateTransitionResult::SUCCESS;
   }
 
@@ -364,6 +370,8 @@ namespace tritonai::gkc
   {
     send_log(LogPacket::Severity::INFO, "Controller reinitializing");
     set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
+    _throttle_vesc_disable = 0;
+    _steering_vesc_disable = 0;
     return StateTransitionResult::SUCCESS;
   }
 

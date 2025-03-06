@@ -34,8 +34,14 @@
 #define REMOTE_UART_TX_PIN PE_7 // 14th pin, 1st pin on DuraClik, UART7_RX, ELRS_TX
 #define REMOTE_UART_RX_PIN PE_8 // 16th pin, 2nd pin on DuraClik, UART7_TX, ELRS_RX
 
+// Vesc disable pins
 #define THROTTLE_VESC_DISABLE_PIN PD_14
 #define STEERING_VESC_DISABLE_PIN PD_12
+
+// Tower light pins
+#define TOWER_LIGHT_RED PD_15
+#define TOWER_LIGHT_YELLOW PD_11
+#define TOWER_LIGHT_GREEN PE_12
 
 // Generic comm settings
 #define RECV_BUFFER_SIZE 32

@@ -10,33 +10,51 @@
 
 namespace tritonai::gkc
 {
-  void Controller::update_tower_lights() {
-    // First turn all lights off
+  void Controller::update_lights()
+  {
+    auto now = chrono::steady_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - _last_light_toggle).count();
+    
+    // Flash at 1Hz (toggle every 500ms)
+    if (elapsed >= 500) {
+      _light_state = !_light_state;
+      _last_light_toggle = now;
+    }
+    
+    // Turn off all lights first
     _tower_light_red = 0;
     _tower_light_yellow = 0;
     _tower_light_green = 0;
     
-    // Set appropriate light based on state
-    switch(get_state()) {
-      case GkcLifecycle::Uninitialized:
-      case GkcLifecycle::Initializing:
-        _tower_light_red = 1;  // Solid red for uninitialized/initializing
+    // Emergency state takes precedence - flash red at 1Hz
+    if (_emergency_active) {
+      _tower_light_red = _light_state;
+      return;
+    }
+    
+    // If RC is not connected, flash yellow at 1Hz
+    if (!_rc_connected) {
+      _tower_light_yellow = _light_state;
+      return;
+    }
+    
+    // If RC is connected, set lights based on autonomy mode
+    switch (_current_autonomy_mode) {
+      case AUTONOMOUS:
+        _tower_light_green = 1; // Solid green for full autonomous
         break;
-      case GkcLifecycle::Inactive:
-        _tower_light_yellow = 1;  // Solid yellow for inactive
+      case AUTONOMOUS_OVERRIDE:
+        _tower_light_yellow = 1; // Solid yellow for autonomous with override
         break;
-      case GkcLifecycle::Active:
-        _tower_light_green = 1;  // Solid green for active
-        break;
-      case GkcLifecycle::Emergency:
-        // Flashing red for emergency is handled in agx_heartbeat()
+      case MANUAL:
+        _tower_light_red = 1; // Solid red for manual only
         break;
       default:
-        // All lights off for unknown state
+        _tower_light_yellow = _light_state; // Flash yellow for unknown state
         break;
     }
   }
-
+  
   void Controller::agx_heartbeat()
   {
     HeartbeatGkcPacket packet;
@@ -47,8 +65,6 @@ namespace tritonai::gkc
     GkcStateMachine::initialize();
     //TODO: (Moises) TEMP
     
-    bool emergency_blink_state = false;
-    
     while(1){
       ThisThread::sleep_for(std::chrono::milliseconds(100));
 
@@ -57,12 +73,9 @@ namespace tritonai::gkc
       packet.state = get_state();
       _comm.send(packet); // Send the heartbeat packet
       this->inc_count(); // Increment the watchdog count for the controller
-
-      // Handle emergency state blinking
-      if (get_state() == GkcLifecycle::Emergency) {
-        emergency_blink_state = !emergency_blink_state;
-        _tower_light_red = emergency_blink_state;
-      }
+      
+      // Update the tower lights
+      update_lights();
       
       switch(get_state())
       {
@@ -89,7 +102,6 @@ namespace tritonai::gkc
       if(state != old_state){
         old_state = state;
         send_log(LogPacket::Severity::WARNING, "Controller state: " + state);
-        update_tower_lights(); // Update lights on state change
       }
     }
   }
@@ -97,7 +109,8 @@ namespace tritonai::gkc
   void Controller::on_rc_disconnect()
   {
     send_log(LogPacket::Severity::INFO, "Controller heartbeat lost");
-
+    _rc_connected = false; // Mark RC as disconnected for the light system
+    
     if(get_state() != GkcLifecycle::Active)
     {
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring RC controller heartbeat lost");
@@ -296,6 +309,13 @@ namespace tritonai::gkc
   void Controller::packet_callback(const RCControlGkcPacket &packet)
   {
     _rc_heartbeat.inc_count(); // Increment the RC heartbeat count
+    _rc_connected = true; // Mark RC as connected for the light system
+    
+    // Update light tower state based on emergency stop status
+    _emergency_active = !packet.is_active;
+    
+    // Update autonomy mode for light system
+    _current_autonomy_mode = packet.autonomy_mode;
 
     if (get_state() == GkcLifecycle::Uninitialized)
     {
@@ -369,7 +389,6 @@ namespace tritonai::gkc
     send_log(LogPacket::Severity::INFO, "Controller initializing");
     _watchdog.arm(); // Arms the watchdog
     set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
-    update_tower_lights(); // Update the lights based on new state
     return StateTransitionResult::SUCCESS;
   }
 
@@ -379,7 +398,6 @@ namespace tritonai::gkc
     send_log(LogPacket::Severity::INFO, "Controller deactivating");
     _throttle_vesc_disable = 1;
     _steering_vesc_disable = 1;
-    update_tower_lights(); // Update the lights based on new state
     return StateTransitionResult::SUCCESS;
   }
 
@@ -389,7 +407,6 @@ namespace tritonai::gkc
     send_log(LogPacket::Severity::INFO, "Controller activating");
     _throttle_vesc_disable = 0;
     _steering_vesc_disable = 0;
-    update_tower_lights(); // Update the lights based on new state
     return StateTransitionResult::SUCCESS;
   }
 
@@ -400,10 +417,7 @@ namespace tritonai::gkc
     set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     _throttle_vesc_disable = 1;
     _steering_vesc_disable = 1;
-    // For emergency, we'll handle flashing in the heartbeat function
-    // Turn off all other lights
-    _tower_light_yellow = 0;
-    _tower_light_green = 0;
+    _emergency_active = true; // Set emergency active flag for light system
     return StateTransitionResult::SUCCESS;
   }
 
@@ -414,7 +428,7 @@ namespace tritonai::gkc
     set_actuation_values(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car (brake at 20% pressure
     _throttle_vesc_disable = 0;
     _steering_vesc_disable = 0;
-    update_tower_lights(); // Update the lights based on new state
+    _emergency_active = false; // Clear emergency flag when reinitializing
     return StateTransitionResult::SUCCESS;
   }
 

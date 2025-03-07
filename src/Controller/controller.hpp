@@ -22,6 +22,7 @@ namespace tritonai::gkc
       Controller();
 
       void agx_heartbeat();
+      void update_lights();
 
 
     protected:
@@ -68,7 +69,6 @@ namespace tritonai::gkc
       std::chrono::time_point<std::chrono::steady_clock> _last_rc_command=std::chrono::steady_clock::now();
       Watchable _rc_heartbeat;
       void on_rc_disconnect();
-      void update_tower_lights();
       bool _stop_on_rc_disconnect{true};
       void set_actuation_values(float throttle, float steering, float brake);
       DigitalOut _led{LED1};
@@ -77,6 +77,13 @@ namespace tritonai::gkc
       DigitalOut _tower_light_green{TOWER_LIGHT_GREEN, 0};
       DigitalOut _throttle_vesc_disable{THROTTLE_VESC_DISABLE_PIN, 0};
       DigitalOut _steering_vesc_disable{STEERING_VESC_DISABLE_PIN, 0};
+      
+      // Light control variables
+      bool _rc_connected{false};
+      bool _emergency_active{false};
+      AutonomyMode _current_autonomy_mode{AUTONOMOUS};
+      chrono::time_point<chrono::steady_clock> _last_light_toggle = chrono::steady_clock::now();
+      bool _light_state{false}; // For flashing
   };
 }
 

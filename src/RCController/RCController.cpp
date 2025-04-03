@@ -1,4 +1,4 @@
-#include "RCController/RCController.hpp"
+#include "RCController.hpp"
 #include <iostream>
 #include <string>
 
@@ -150,6 +150,16 @@ namespace tritonai::gkc
             _is_ready = true;
 
             _packet.publish(*_sub);
+
+            // Normalize steering and throttle for joystick
+            int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
+            int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
+
+            // Ignore buttons for now
+            uint8_t joystick_buttons = 0x00;
+
+            // Update joystick HID device
+            _joystick.update(joystick_x, joystick_y, joystick_buttons);
         }
     }
 
@@ -157,7 +167,8 @@ namespace tritonai::gkc
         Watchable(DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS, "RCController"),
         _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN),
         _is_ready(false),
-        _sub(sub)
+        _sub(sub),
+        _joystick(true)
     {
         _rc_thread.start(callback(this, &RCController::update));
         attach(callback(this, &RCController::watchdog_callback));

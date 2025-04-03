@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "math.h"
 #include "elrs_receiver.hpp"
+#include "USBJoystick/USBJoystick.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Watchdog/watchable.hpp"
 #include <Thread.h>
@@ -45,6 +46,7 @@ class RCController : public Watchable
     bool _is_ready;
     GkcPacketSubscriber *_sub;
     float current_throttle=0.0;
+    USBJoystick _joystick;
 };
 
 } // namespace tritonai::gkc

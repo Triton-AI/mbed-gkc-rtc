@@ -1,0 +1,7 @@
+{
+  "target_overrides": {
+    "*": {
+      "target.usb_device": true
+    }
+  }
+}

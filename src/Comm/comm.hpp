@@ -18,7 +18,7 @@
 #include <queue>
 
 #include "BufferedSerial.h"
-#include "USBSerial.h"
+// #include "USBSerial.h" This likely has to go if we use the controller passthrough
 #include "mbed.h"
 
 #include "config.hpp"

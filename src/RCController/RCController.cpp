@@ -77,11 +77,18 @@ namespace tritonai::gkc
         else
             return AUTONOMOUS_OVERRIDE;
     }
+    
+    bool Translation::isLeftTriSwitchUp(int leftTriVal)
+    {
+        double leftTriVal_norm = normalize(leftTriVal);
+        return (leftTriVal_norm > 0.5); // Return true if left tri switch is up
+    }
 
     // RCController  
     void RCController::update() 
     {
         const uint16_t *busData = _receiver.busData();
+        bool shouldEnableJoystick = false;
         while (true)
         {  
             ThisThread::sleep_for(10ms);
@@ -90,7 +97,6 @@ namespace tritonai::gkc
 
             if (!_receiver.gatherData()) continue; // Stop if no data available
             
-
             if(!_receiver.messageAvailable) continue; // Stop if no message available
 
             // std::cout << "Bus data: " << (int)(100*busData[0]) <<
@@ -122,7 +128,6 @@ namespace tritonai::gkc
             bool keep_constant_thr = Map.keep_constant_thr(busData[ELRS_HOLD_THROTTLE]);
             bool is_all_zero = abs(100*Map.normalize(busData[ELRS_THROTLE])) <= 5 && abs(100*Map.normalize(busData[ELRS_STEERING])) <= 5;
 
-
             if(is_all_zero && !keep_constant_thr){
                 _packet.throttle = 0.0;
                 _packet.steering = 0.0;
@@ -151,15 +156,25 @@ namespace tritonai::gkc
 
             _packet.publish(*_sub);
 
-            // Normalize steering and throttle for joystick
-            int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
-            int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
+            // Determine if joystick should be enabled based on autonomy mode and left tri switch
+            shouldEnableJoystick = (_packet.autonomy_mode == AUTONOMOUS && 
+                                   Map.isLeftTriSwitchUp(busData[ELRS_TRI_SWITCH_LEFT]));
 
-            // Ignore buttons for now
-            uint8_t joystick_buttons = 0x00;
+            // Set indicator lights state via Controller
+            _indicator_state = shouldEnableJoystick;
 
-            // Update joystick HID device
-            _joystick.update(joystick_x, joystick_y, joystick_buttons);
+            // Only update joystick HID device if in appropriate mode
+            if (shouldEnableJoystick) {
+                // Normalize steering and throttle for joystick
+                int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
+                int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
+
+                // Ignore buttons for now
+                uint8_t joystick_buttons = 0x00;
+
+                // Update joystick HID device
+                _joystick.update(joystick_x, joystick_y, joystick_buttons);
+            }
         }
     }
 
@@ -168,7 +183,8 @@ namespace tritonai::gkc
         _receiver(REMOTE_UART_RX_PIN,REMOTE_UART_TX_PIN),
         _is_ready(false),
         _sub(sub),
-        _joystick(true)
+        _joystick(true),
+        _indicator_state(false)
     {
         _rc_thread.start(callback(this, &RCController::update));
         attach(callback(this, &RCController::watchdog_callback));
@@ -178,5 +194,10 @@ namespace tritonai::gkc
     {
         std::cout << "RCController watchdog triggered" << std::endl;
         NVIC_SystemReset();
+    }
+    
+    bool RCController::getIndicatorState() const
+    {
+        return _indicator_state;
     }
 } // namespace tritonai::gkc

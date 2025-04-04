@@ -22,6 +22,7 @@ struct Translation
     double brake(int brakeVal);
     bool is_active(int swith1, int swith2);
     AutonomyMode getAutonomyMode(int rightTriVal);
+    bool isLeftTriSwitchUp(int leftTriVal);
 };
 
 class RCController : public Watchable
@@ -32,6 +33,8 @@ class RCController : public Watchable
         _is_ready = false;
         return _packet;
     }
+    
+    bool getIndicatorState() const;
 
     protected:
     void update();
@@ -47,6 +50,7 @@ class RCController : public Watchable
     GkcPacketSubscriber *_sub;
     float current_throttle=0.0;
     USBJoystick _joystick;
+    bool _indicator_state;
 };
 
 } // namespace tritonai::gkc

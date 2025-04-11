@@ -133,7 +133,7 @@ namespace tritonai::gkc
   Controller::Controller() :
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
-    _severity(LogPacket::Severity::ERROR), // Initializes the severity of the logger
+    _severity(LogPacket::Severity::FATAL), // Initializes the severity of the logger
     _comm(this), // Passes the controller as the subscriber to the comm manager
     _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
     _sensor_reader(), // Initializes the sensor reader
@@ -230,7 +230,7 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the config packet callback
   void Controller::packet_callback(const ConfigGkcPacket &packet)
   {
-    std::cout << "ConfigGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "ConfigGkcPacket received");
   }
 
   void Controller::packet_callback(const StateTransitionGkcPacket &packet)
@@ -270,7 +270,7 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the control packet callback, partially done
   void Controller::packet_callback(const ControlGkcPacket &packet)
   {
-    std::cout << "ControlGkcPacket received" << std::endl;
+    send_log(LogPacket::Severity::INFO, "ControlGkcPacket received");
     if(get_state() != GkcLifecycle::Active){
       send_log(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
       return;

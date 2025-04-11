@@ -20,7 +20,8 @@ struct Translation
     double throttle_ratio(int throttleVal);
     bool keep_constant_thr(int throttleVal);
     double brake(int brakeVal);
-    bool is_active(int swith1, int swith2);
+    bool is_active(int right_toggle);
+    bool isControllerPassthrough(int left_toggle);
     AutonomyMode getAutonomyMode(int rightTriVal);
     bool isLeftTriSwitchUp(int leftTriVal);
 };

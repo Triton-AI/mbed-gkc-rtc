@@ -19,6 +19,7 @@
 #include "config.hpp"//Header file containing communication and watchdog parameters and allocates CAN busses for Throttle, brakaing and steering
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Watchdog/watchable.hpp"
+#include "Tools/logger.hpp"
 #include <chrono>
 #include <cstdint>
 #include <vector>
@@ -39,7 +40,7 @@ public:
 
 class SensorReader : public Watchable {
 public:
-  SensorReader();
+  SensorReader(ILogger *logger);
   void register_provider(ISensorProvider *provider);
   void remove_provider(ISensorProvider *provider);
   const SensorGkcPacket &get_packet() const { return pkt_; }
@@ -52,13 +53,13 @@ public:
   void watchdog_callback();
 
 protected:
+  ILogger *_logger;
   SensorGkcPacket pkt_{};
   std::vector<ISensorProvider *> providers_{};
   Mutex providers_lock_;
   std::chrono::milliseconds poll_interval_{DEFAULT_SENSOR_POLL_INTERVAL_MS};
 
-  Thread sensor_poll_thread{osPriorityNormal, OS_STACK_SIZE, nullptr,
-                            "sensor_poll_thread"};
+  Thread sensor_poll_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "sensor_poll_thread"};
   void sensor_poll_thread_impl();
 
   // TODO include QEI.h and add a pointer to qei

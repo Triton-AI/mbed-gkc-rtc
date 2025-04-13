@@ -38,11 +38,21 @@ namespace tritonai::gkc
       return;
     }
     
-    // Check if we need to set orange indicator (red + yellow) for autonomous mode with left tri switch up
-    if (_current_autonomy_mode == AUTONOMOUS && _rc_controller.getIndicatorState()) {
-      _tower_light_red = 1;
-      _tower_light_yellow = 1;
-      return;                   // This combination makes orange
+    // Check for controller passthrough mode
+    bool passthrough_mode = (_current_autonomy_mode == AUTONOMOUS && _rc_controller.getIndicatorState());
+    
+    // Check USB connection when in passthrough mode
+    if (passthrough_mode) {
+        if (_rc_controller.isUSBConnected()) {
+            // USB connected - solid orange for normal passthrough
+            _tower_light_red = 1;
+            _tower_light_yellow = 1;
+        } else {
+            // USB not connected - flash orange to indicate issue
+            _tower_light_red = _light_state;
+            _tower_light_yellow = _light_state;
+        }
+        return;
     }
     
     // If RC is connected, set lights based on autonomy mode
@@ -134,12 +144,12 @@ namespace tritonai::gkc
     Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"), // Initializes the controller with default values
     GkcStateMachine(), // Initializes the state machine
     _severity(LogPacket::Severity::FATAL), // Initializes the severity of the logger
-    _comm(this), // Passes the controller as the subscriber to the comm manager
-    _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS), // Initializes the watchdog with default values
-    _sensor_reader(), // Initializes the sensor reader
+    _comm(this, this), // Passes the controller as the subscriber to the comm manager
+    _watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS, this), // Initializes the watchdog with default values
+    _sensor_reader(this), // Initializes the sensor reader
     _actuation(this), // Passes the controller as the logger to the actuation controller
-    _rc_controller(this), // Passes the controller as the packet subscriber to the RC controller
-    _rc_heartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat") // Initializes the RC controller  heartbeat with default values
+    _rc_controller(this, this), // Passes the controller as the packet subscriber to the RC controller
+    _rc_heartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat") // Initializes the RC controller heartbeat with default values
   {
     // Attaches the watchdog callback to the controller
     attach(callback(this, &Controller::watchdog_callback));
@@ -179,7 +189,7 @@ namespace tritonai::gkc
       std::cerr << "Warning: " << what << std::endl;
     else if(severity == LogPacket::Severity::INFO && _severity <= severity)
       std::cout << "Info: " << what << std::endl;
-    else if(severity == LogPacket::Severity::BEBUG && _severity <= severity)
+    else if(severity == LogPacket::Severity::DEBUG && _severity <= severity)
       std::cout << "Debug: " << what << std::endl;
 
   }
@@ -187,7 +197,7 @@ namespace tritonai::gkc
   // PACKET CALLBACKS API IMPLEMENTATION
   void Controller::packet_callback(const Handshake1GkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "Handshake1GkcPacket received");
+    send_log(LogPacket::Severity::DEBUG, "Handshake1GkcPacket received");
     Handshake2GkcPacket response;
     response.seq_number = packet.seq_number + 1;
     _comm.send(response);
@@ -196,12 +206,12 @@ namespace tritonai::gkc
 
   void Controller::packet_callback(const Handshake2GkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "Handshake2GkcPacket received, should not happen, ignoring.");
+    send_log(LogPacket::Severity::DEBUG, "Handshake2GkcPacket received, should not happen, ignoring.");
   }
 
   void Controller::packet_callback(const GetFirmwareVersionGkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "GetFirmwareVersionGkcPacket received");
+    send_log(LogPacket::Severity::DEBUG, "GetFirmwareVersionGkcPacket received");
     FirmwareVersionGkcPacket response;
     response.major = GkcPacketLibVersion::MAJOR;
     response.minor = GkcPacketLibVersion::MINOR;
@@ -224,13 +234,13 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the heartbeat packet callback
   void Controller::packet_callback(const HeartbeatGkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "HeartbeatGkcPacket received");
+    send_log(LogPacket::Severity::DEBUG, "HeartbeatGkcPacket received");
   }
 
   // TODO: (Moises) Implement the config packet callback
   void Controller::packet_callback(const ConfigGkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "ConfigGkcPacket received");
+    send_log(LogPacket::Severity::DEBUG, "ConfigGkcPacket received");
   }
 
   void Controller::packet_callback(const StateTransitionGkcPacket &packet)
@@ -292,7 +302,7 @@ namespace tritonai::gkc
   // TODO: (Moises) Implement the sensor packet callback
   void Controller::packet_callback(const SensorGkcPacket &packet)
   {
-    send_log(LogPacket::Severity::INFO, "SensorGkcPacket received");
+    send_log(LogPacket::Severity::DEBUG, "SensorGkcPacket received");
   }
 
   // TODO: (Moises) Implement the shutdown1 packet callbacks

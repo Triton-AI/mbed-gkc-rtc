@@ -23,6 +23,7 @@
 
 #include "config.hpp"
 #include "Watchdog/watchable.hpp"
+#include "Tools/logger.hpp"
 
 #include "tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
@@ -34,10 +35,12 @@ namespace tritonai {
 namespace gkc {
 class CommManager : public Watchable {
 public:
-  explicit CommManager(GkcPacketSubscriber *sub);
+  explicit CommManager(GkcPacketSubscriber *sub, ILogger *logger);
   void send(const GkcPacket &packet);
 
 protected:
+  ILogger *_logger;
+  
   std::unique_ptr<GkcPacketFactory> factory_;
   Queue<GkcBuffer, SEND_QUEUE_SIZE> send_queue_;
   std::queue<std::shared_ptr<GkcBuffer>> send_queue_data_;

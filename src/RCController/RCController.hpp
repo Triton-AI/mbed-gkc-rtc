@@ -7,6 +7,7 @@
 #include "USBJoystick/USBJoystick.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Watchdog/watchable.hpp"
+#include "Tools/logger.hpp"
 #include <Thread.h>
 
 namespace tritonai::gkc
@@ -29,13 +30,14 @@ struct Translation
 class RCController : public Watchable
 {
     public:
-    explicit RCController(GkcPacketSubscriber *sub);
+    explicit RCController(GkcPacketSubscriber *sub, ILogger *logger);
     const RCControlGkcPacket& getPacket(){ 
         _is_ready = false;
         return _packet;
     }
     
     bool getIndicatorState() const;
+    bool isUSBConnected() const { return _usb_connected; }
 
     protected:
     void update();
@@ -52,6 +54,8 @@ class RCController : public Watchable
     float current_throttle=0.0;
     USBJoystick _joystick;
     bool _indicator_state;
+    bool _usb_connected{false};
+    ILogger *_logger;
 };
 
 } // namespace tritonai::gkc

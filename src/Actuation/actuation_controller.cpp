@@ -6,13 +6,14 @@
 
 namespace tritonai::gkc
 {
-  ActuationController::ActuationController(ILogger *logger) : logger(logger)
+  ActuationController::ActuationController(ILogger *logger) : _logger(logger)
   {
   }
 
   void ActuationController::set_throttle_cmd(float cmd)
   {
     cmd = ActuationController::clamp(cmd, THROTTLE_MAX_REVERSE_SPEED, -1.0f*THROTTLE_MAX_REVERSE_SPEED);
+    _logger->send_log(LogPacket::Severity::DEBUG, "Set throttle command: " + std::to_string(cmd));
     comm_can_set_speed(cmd);
   }
 
@@ -23,11 +24,13 @@ namespace tritonai::gkc
 
   void ActuationController::set_steering_cmd(float cmd)
   {
+    _logger->send_log(LogPacket::Severity::DEBUG, "Set steering command: " + std::to_string(cmd));
     comm_can_set_angle(cmd);
   }
 
   void ActuationController::set_brake_cmd(float cmd)
   {
+    _logger->send_log(LogPacket::Severity::DEBUG, "Set brake command: " + std::to_string(cmd));
     comm_can_set_brake_position(cmd);
   }
 } // namespace tritonai::gkc

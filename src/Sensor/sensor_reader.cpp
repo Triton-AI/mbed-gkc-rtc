@@ -24,14 +24,13 @@
 
 namespace tritonai {
 namespace gkc {
-SensorReader::SensorReader()
+SensorReader::SensorReader(ILogger *logger)
     : Watchable(DEFAULT_SENSOR_POLL_INTERVAL_MS,
                 DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS,
-                "SensorReader") {
-  // std::cout << "Initializing sensor" << std::endl;
-  sensor_poll_thread.start(
-      callback(this, &SensorReader::sensor_poll_thread_impl));
-  // std::cout << "Sensor initialized" << std::endl;
+                "SensorReader"),
+      _logger(logger) {
+  sensor_poll_thread.start(callback(this, &SensorReader::sensor_poll_thread_impl));
+  _logger->send_log(LogPacket::Severity::INFO, "SensorReader initialized");
   attach(callback(this, &SensorReader::watchdog_callback));
 }
 
@@ -64,7 +63,7 @@ void SensorReader::remove_provider(ISensorProvider *provider) {
 }
 
 void SensorReader::watchdog_callback() {
-  std::cout << "SensorReader Timeout detected" << std::endl;
+  _logger->send_log(LogPacket::Severity::FATAL, "SensorReader Timeout detected");
   NVIC_SystemReset();
 }
 

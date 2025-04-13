@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "Tools/logger.hpp"
 #include "watchable.hpp"
 
 using tritonai::gkc::Watchable;
@@ -15,7 +16,7 @@ class Watchdog : public Watchable {
 public:
   Watchdog() = delete;
   Watchdog(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms,
-           uint32_t wakeup_every_ms);
+           uint32_t wakeup_every_ms, ILogger *logger);
 
   void add_to_watchlist(Watchable *to_watch);
   void arm();
@@ -32,6 +33,7 @@ protected:
   uint32_t watchdog_interval_ms_;
 
   void start_watch_thread();
+  ILogger *_logger;
 };
 } // namespace gkc
 } // namespace tritonai

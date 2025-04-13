@@ -8,8 +8,9 @@
 namespace tritonai {
 namespace gkc {   //defines a constructor for a class called "Watchdog" in the "gkc" namespace, which is a part of the "tritonai" namespace. 
 Watchdog::Watchdog(uint32_t update_interval_ms,
-                   uint32_t max_inactivity_limit_ms, uint32_t wakeup_every_ms)
-    : Watchable(update_interval_ms, max_inactivity_limit_ms, "Watchdog"), 
+                   uint32_t max_inactivity_limit_ms, uint32_t wakeup_every_ms, ILogger *logger)
+    : Watchable(update_interval_ms, max_inactivity_limit_ms, "Watchdog"),
+    _logger(logger),
     //Watchable constructor is called with the "update_interval_ms" and "max_inactivity_limit_ms" arguments
     //the result is used to initialize the Watchdog object.
       watchdog_interval_ms_(wakeup_every_ms) { 
@@ -41,15 +42,17 @@ void Watchdog::disarm() {
 }
 
 void Watchdog::watchdog_callback() {//would be called when the watchdog timer expires 
-  std::cout << "Watchdog timeout" << std::endl;
+  _logger->send_log(LogPacket::Severity::FATAL, "Watchdog timeout detected");
   // Restart the system 
   NVIC_SystemReset();
 }
-//start a thread that continuously monitors the watchlist nd checks for any activity.
+//start a thread that continuously monitors the watchlist and checks for any activity.
 void Watchdog::start_watch_thread() {
   static auto last_time = Kernel::Clock::now();//initializes a static variable last_time with the current time
   while (1) {//infinite while  loop 
     if (is_activated()) {
+      _logger->send_log(LogPacket::Severity::DEBUG, "Watchdog checking components");
+
       auto time_elapsed_ms = //calculates the time elapsed since the last iteration
           std::chrono::duration_cast<std::chrono::milliseconds>(
               Kernel::Clock::now() - last_time); //updates inactivity timers for each element in the watchlist vector
@@ -79,6 +82,7 @@ void Watchdog::start_watch_thread() {
               // Watchdog triggered.
               // std::cout << "Watchdog triggered for " << entry.first->get_name()
               //           << std::endl;
+              _logger->send_log(LogPacket::Severity::FATAL, "Watchdog triggered for " + entry.first->get_name());
               entry.first->watchdog_trigger();
             }
           }

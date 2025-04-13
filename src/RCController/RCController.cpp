@@ -123,30 +123,38 @@ void RCController::update()
         // and the designated actuator button.
         if (passthroughEnabled)
         {
-            int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
-            int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
-            
-            uint8_t joystick_buttons = 0x00;
-            
-            double tri_value = Map.normalize(busData[ELRS_TRI_SWITCH_LEFT]);
-            int selectedButton = 0;
-            if (tri_value < -0.5)
-                selectedButton = 0;  // Virtual Button 1
-            else if (tri_value > 0.5)
-                selectedButton = 2;  // Virtual Button 3
-            else
-                selectedButton = 1;  // Virtual Button 2
+            _usb_connected = _joystick.is_connected();
 
-            bool isActuated = (Map.normalize(busData[ELRS_SE]) > 0.5);
-
-            uint8_t dialPercent = static_cast<uint8_t>(Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]) * 100);
-
-            if (isActuated)
+            // Only proceed if joystick is connected
+            if (_usb_connected) 
             {
-                joystick_buttons |= (1 << selectedButton);
-            }
+                int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
+                int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
+                
+                uint8_t joystick_buttons = 0x00;
+                
+                double tri_value = Map.normalize(busData[ELRS_TRI_SWITCH_LEFT]);
+                int selectedButton = 0;
+                if (tri_value < -0.5)
+                    selectedButton = 0;  // Virtual Button 1
+                else if (tri_value > 0.5)
+                    selectedButton = 2;  // Virtual Button 3
+                else
+                    selectedButton = 1;  // Virtual Button 2
 
-            _joystick.update(joystick_x, joystick_y, joystick_buttons, dialPercent);
+                bool isActuated = (Map.normalize(busData[ELRS_SE]) > 0.5);
+
+                uint8_t dialPercent = static_cast<uint8_t>(Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]) * 100);
+
+                if (isActuated)
+                {
+                    joystick_buttons |= (1 << selectedButton);
+                }
+
+                _joystick.update(joystick_x, joystick_y, joystick_buttons, dialPercent);
+            }
+        } else {
+            _usb_connected = false;
         }
 
         // Process RC control commands when not in emergency stop.
@@ -178,11 +186,12 @@ void RCController::update()
     }
 }
 
-RCController::RCController(GkcPacketSubscriber *sub)
+RCController::RCController(GkcPacketSubscriber *sub, ILogger *logger)
     : Watchable(DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS, "RCController"),
         _receiver(REMOTE_UART_RX_PIN, REMOTE_UART_TX_PIN),
         _is_ready(false),
         _sub(sub),
+        _logger(logger),
         _joystick(true),
         _indicator_state(false)
 {
@@ -192,7 +201,7 @@ RCController::RCController(GkcPacketSubscriber *sub)
 
 void RCController::watchdog_callback()
 {
-    std::cout << "RCController watchdog triggered" << std::endl;
+    _logger->send_log(LogPacket::Severity::FATAL, "RCController watchdog triggered");
     NVIC_SystemReset();
 }
 

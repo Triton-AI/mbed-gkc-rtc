@@ -27,7 +27,7 @@ public:
       return val;
   }
 
-  ILogger *logger;
+  ILogger *_logger;
 
 };
 } // namespace gkc

@@ -6,7 +6,15 @@ namespace tritonai::gkc {
 USBJoystick::USBJoystick(bool connect)
     : USBHID(connect, 8, 8, 0x1D50, 0x60A1, 0x0001) {}
 
+bool USBJoystick::is_connected() {
+    return configured() && USBHID::ready();
+}
+
 bool USBJoystick::update(int8_t x, int8_t y, uint8_t buttons, uint8_t slider) {
+    if (!is_connected()) {
+        return false;
+    }
+        
     HID_REPORT report;
     report.data[0] = x;       // X axis
     report.data[1] = y;       // Y axis

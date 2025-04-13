@@ -9,6 +9,7 @@ class USBJoystick : public USBHID {
 public:
     USBJoystick(bool connect = false);
     bool update(int8_t x, int8_t y, uint8_t buttons, uint8_t dial);
+    bool is_connected();
 
 protected:
     // Return the report descriptor for the joystick.

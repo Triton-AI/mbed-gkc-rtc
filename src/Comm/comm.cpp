@@ -20,21 +20,16 @@
 
 namespace tritonai {
 namespace gkc {
-CommManager::CommManager(GkcPacketSubscriber *sub)
+CommManager::CommManager(GkcPacketSubscriber *sub, ILogger *logger)
     : Watchable(DEFAULT_COMM_POLL_INTERVAL_MS, DEFAULT_COMM_POLL_LOST_TOLERANCE_MS, "CommManager"),
-      factory_(
-          std::make_unique<GkcPacketFactory>(sub, GkcPacketUtils::debug_cout)) {
+      _logger(logger),
+      factory_(std::make_unique<GkcPacketFactory>(sub, GkcPacketUtils::debug_cout)) 
+{
   attach(callback(this, &CommManager::watchdog_callback));
-#ifdef COMM_USB_SERIAL
-  usb_serial_ = std::make_unique<USBSerial>();
-  usb_serial_->attach(this, &CommManager::recv_callback);
-#endif
+  _logger->send_log(LogPacket::Severity::INFO, "CommManager initialized");
 
-#ifdef COMM_UART_SERIAL
-  uart_serial_ =
-      std::make_unique<BufferedSerial>(UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
+  uart_serial_ = std::make_unique<BufferedSerial>(UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
   uart_serial_thread_.start(mbed::callback(this, &CommManager::recv_callback));
-#endif
 
   send_thread.start(callback(this, &CommManager::send_thread_impl));
 }
@@ -47,37 +42,23 @@ void CommManager::send(const GkcPacket &packet) {
 }
 
 size_t CommManager::send_impl(const GkcBuffer &buffer) {
-#ifdef COMM_USB_SERIAL
-#define SERIAL_VAR usb_serial_
-#endif
-#ifdef COMM_UART_SERIAL
-#define SERIAL_VAR uart_serial_
-#endif
-  if (!SERIAL_VAR->writable()) {
+  if (!uart_serial_->writable()) {
+    _logger->send_log(LogPacket::Severity::ERROR, "Serial not writable");
     return 0;
   }
-  return SERIAL_VAR->write(buffer.data(), buffer.size());
+  size_t bytes = uart_serial_->write(buffer.data(), buffer.size());
+  _logger->send_log(LogPacket::Severity::DEBUG, "Sent " + std::to_string(bytes) + " bytes");
+  return bytes;
 }
 
 void CommManager::watchdog_callback() {
-  std::cout << "CommManager Timeout detected" << std::endl;
+  _logger->send_log(LogPacket::Severity::FATAL, "CommManager watchdog timeout detected");
   NVIC_SystemReset();
 }
 
 void CommManager::recv_callback() {
-#ifdef COMM_USB_SERIAL
-  static auto buffer = GkcBuffer(RECV_BUFFER_SIZE, 0);
-  inc_count();
-  do {
-    auto num_byte_read = usb_serial_->read(buffer.data(), buffer.size());
-    if (num_byte_read > 0) {
-      factory_->Receive(RawGkcBuffer{buffer.data(), buffer.size()});
-    }
-  } while (usb_serial_->available());
-#endif
+  _logger->send_log(LogPacket::Severity::DEBUG, "CommManager received data");
 
-#ifdef COMM_UART_SERIAL
-  // std::cout << "Starting comm receive" << std::endl;
   static auto buffer = GkcBuffer(RECV_BUFFER_SIZE, 0);
   static auto wait_time = std::chrono::milliseconds(WAIT_READ_MS);
   while (!ThisThread::flags_get()) {
@@ -105,7 +86,6 @@ void CommManager::recv_callback() {
     // wait_time)
   }
 
-#endif
 }
 
 void CommManager::send_thread_impl() {

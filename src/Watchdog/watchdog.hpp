@@ -1,5 +1,9 @@
-#ifndef WATCHDOG_HPP_
-#define WATCHDOG_HPP_
+/**
+ * @file watchdog.hpp
+ * @brief Defines the Watchdog class for monitoring component activity
+ */
+
+#pragma once
 
 #include <cstdint>
 #include <stdint.h>
@@ -9,32 +13,30 @@
 #include "Tools/logger.hpp"
 #include "watchable.hpp"
 
-using tritonai::gkc::Watchable;
-namespace tritonai {
-namespace gkc {
-class Watchdog : public Watchable {
-public:
-  Watchdog() = delete;
-  Watchdog(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms,
-           uint32_t wakeup_every_ms, ILogger *logger);
+namespace tritonai::gkc {
 
-  void add_to_watchlist(Watchable *to_watch);
-  void arm();
-  void disarm();
+    class Watchdog : public Watchable {
+    public:
+        Watchdog() = delete;
+        Watchdog(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms,
+                uint32_t wakeup_every_ms, ILogger* logger);
 
-  void watchdog_callback(); // Watchable API
+        void AddToWatchlist(Watchable* to_watch);
+        void Arm();
+        void Disarm();
 
-protected:
-  typedef uint32_t TimeElapsed;
-  typedef std::pair<Watchable *, TimeElapsed> WatchlistEntry;
-  typedef std::vector<WatchlistEntry> Watchlist;
-  Watchlist watchlist{};
-  Thread watch_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "watch_thread"};
-  uint32_t watchdog_interval_ms_;
+        void WatchdogCallback(); // Watchable API
 
-  void start_watch_thread();
-  ILogger *_logger;
-};
-} // namespace gkc
-} // namespace tritonai
-#endif // WATCHDOG_HPP_
+    protected:
+        typedef uint32_t TimeElapsed;
+        typedef std::pair<Watchable*, TimeElapsed> WatchlistEntry;
+        typedef std::vector<WatchlistEntry> Watchlist;
+        Watchlist m_Watchlist{};
+        Thread m_WatchThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "watch_thread"};
+        uint32_t m_WatchdogIntervalMs;
+
+        void StartWatchThread();
+        ILogger* m_Logger;
+    };
+
+} // namespace tritonai::gkc

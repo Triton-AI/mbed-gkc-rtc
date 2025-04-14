@@ -1,212 +1,178 @@
+/**
+ * @file RCController.cpp
+ * @brief Implementation of the Remote Control interface
+ * 
+ * @copyright Copyright 2025 Triton AI
+ */
+
 #include "RCController.hpp"
 #include <iostream>
 #include <string>
 
-namespace tritonai::gkc
-{
-// ================== TRANSLATION FUNCTIONS ==================
+namespace tritonai::gkc {
 
-double Translation::normalize(int analogValue)
-{
-    if (analogValue > 1800)
-        analogValue = 1800;
-    if (analogValue < 174)
-        analogValue = 174;
-    analogValue -= 992;
-    return analogValue >= 0 
-            ? static_cast<double>(analogValue) / (1800 - 992)
-            : static_cast<double>(analogValue) / (992 - 174);
-}
-
-double Translation::throttle(int throttleVal)
-{
-    return normalize(throttleVal);
-}
-
-double Translation::throttle_ratio(int throttleVal)
-{
-    double normalized_value = normalize(throttleVal);
-    return (normalized_value + 1.0) / 2.0;
-}
-
-// Removed: keep_constant_thr()
-
-double Translation::brake(int brakeVal)
-{
-    return normalize(brakeVal);
-}
-
-double Translation::steering(int steerVal)
-{
-    double normalized_value = normalize(steerVal);
-    double Steering_Ang = 0.0;
-    if (normalized_value < 0)
-        Steering_Ang = -normalized_value * MIN__WHEEL_STEER_DEG;
-    else
-        Steering_Ang = normalized_value * MAX__WHEEL_STEER_DEG;
-
-    if (Steering_Ang > MAX__WHEEL_STEER_DEG)
-        Steering_Ang = MAX__WHEEL_STEER_DEG;
-    if (Steering_Ang < MIN__WHEEL_STEER_DEG)
-        Steering_Ang = MIN__WHEEL_STEER_DEG;
-    if (-0.1 < Steering_Ang && Steering_Ang < 0.1)
-        Steering_Ang = 0.0;
-
-    double Steering_Ang_rad = Steering_Ang * (M_PI / 180.0);
-    return Steering_Ang_rad;
-}
-
-// Only the right toggle causes an emergency stop.
-bool Translation::is_active(int right_toggle)
-{
-    double right_norm = normalize(right_toggle);
-    return (right_norm < 0.0);
-}
-
-bool Translation::isControllerPassthrough(int left_toggle)
-{
-    double left_norm = normalize(left_toggle);
-    return (left_norm > 0.5);
-}
-
-AutonomyMode Translation::getAutonomyMode(int rightTriVal)
-{
-    double rightTriVal_norm = normalize(rightTriVal);
-    if (rightTriVal_norm < -0.5)
-        return AUTONOMOUS;
-    else if (rightTriVal_norm > 0.5)
-        return MANUAL;
-    else
-        return AUTONOMOUS_OVERRIDE;
-}
-
-// ================== RCController Methods ====================
-
-void RCController::update()
-{
-    // Bus data pointer is assumed to be updated within _receiver.gatherData()
-    const uint16_t *busData = _receiver.busData();
-
-    while (true)
-    {
-        ThisThread::sleep_for(10ms);
-        inc_count(); // Increment the watchdog rolling counter
-
-        if (!_receiver.gatherData())
-            continue; // No new data available
-
-        if (!_receiver.messageAvailable)
-            continue; // Message not available
-
-        // std::cout << "Bus data: " << (int)(100*busData[0]) <<
-        //     " " << (int)(100*busData[1]) <<
-        //     " " << (int)(100*busData[2]) <<
-        //     " " << (int)(100*busData[3]) <<
-        //     " " << (int)(100*busData[4]) <<
-        //     " " << (int)(100*busData[5]) <<
-        //     " " << (int)(100*busData[6]) <<
-        //     " " << (int)(100*busData[7]) <<
-        //     " " << (int)(100*busData[8]) <<
-        //     std::endl;
-
-        // Check emergency status based solely on the right emergency toggle.
-        bool emergencyActive = Map.is_active(busData[ELRS_EMERGENCY_STOP_RIGHT]);
-
-        // Update the passthrough condition based on the left emergency key.
-        bool passthroughEnabled = (_packet.autonomy_mode == AUTONOMOUS &&
-                                        Map.isControllerPassthrough(busData[ELRS_LEFT_TOGGLE]));
-
-        // Update indicator state on every iteration.
-        _indicator_state = passthroughEnabled;
-
-        // When passthrough is enabled, emulate virtual buttons using the tri switch
-        // and the designated actuator button.
-        if (passthroughEnabled)
-        {
-            _usb_connected = _joystick.is_connected();
-
-            // Only proceed if joystick is connected
-            if (_usb_connected) 
-            {
-                int8_t joystick_x = static_cast<int8_t>(Map.normalize(busData[ELRS_STEERING]) * 127.0);
-                int8_t joystick_y = static_cast<int8_t>(Map.normalize(busData[ELRS_THROTLE]) * 127.0);
-                
-                uint8_t joystick_buttons = 0x00;
-                
-                double tri_value = Map.normalize(busData[ELRS_TRI_SWITCH_LEFT]);
-                int selectedButton = 0;
-                if (tri_value < -0.5)
-                    selectedButton = 0;  // Virtual Button 1
-                else if (tri_value > 0.5)
-                    selectedButton = 2;  // Virtual Button 3
-                else
-                    selectedButton = 1;  // Virtual Button 2
-
-                bool isActuated = (Map.normalize(busData[ELRS_SE]) > 0.5);
-
-                uint8_t dialPercent = static_cast<uint8_t>(Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]) * 100);
-
-                if (isActuated)
-                {
-                    joystick_buttons |= (1 << selectedButton);
-                }
-
-                _joystick.update(joystick_x, joystick_y, joystick_buttons, dialPercent);
-            }
-        } else {
-            _usb_connected = false;
-        }
-
-        // Process RC control commands when not in emergency stop.
-        // Removed references to keep constant throttle.
-        bool is_all_zero = (std::abs(100 * Map.normalize(busData[ELRS_THROTLE])) <= 5 &&
-                            std::abs(100 * Map.normalize(busData[ELRS_STEERING])) <= 5);
-
-        if (is_all_zero)
-        {
-            _packet.throttle = 0.0;
-            _packet.steering = 0.0;
-            _packet.brake = 0.0;
-            _packet.is_active = emergencyActive;
-            _packet.autonomy_mode = Map.getAutonomyMode(busData[ELRS_TRI_SWITCH_RIGHT]);
-            _packet.publish(*_sub);
-            continue;
-        }
-
-        // Always update throttle from the current channel reading.
-        current_throttle = Map.throttle(busData[ELRS_THROTLE]);
-        _packet.throttle = current_throttle * Map.throttle_ratio(busData[ELRS_RATIO_THROTTLE]);
-        _packet.brake = 0.0; // TODO: Implement brake functionality
-        _packet.steering = Map.steering(busData[ELRS_STEERING]);
-        _packet.autonomy_mode = Map.getAutonomyMode(busData[ELRS_TRI_SWITCH_RIGHT]);
-        _packet.is_active = emergencyActive;
-
-        _is_ready = true;
-        _packet.publish(*_sub);
+    double Translation::Normalize(int analogValue) {
+        if (analogValue > 1800)
+            analogValue = 1800;
+        if (analogValue < 174)
+            analogValue = 174;
+        analogValue -= 992;
+        return analogValue >= 0 
+                ? static_cast<double>(analogValue) / (1800 - 992)
+                : static_cast<double>(analogValue) / (992 - 174);
     }
-}
 
-RCController::RCController(GkcPacketSubscriber *sub, ILogger *logger)
-    : Watchable(DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS, "RCController"),
-        _receiver(REMOTE_UART_RX_PIN, REMOTE_UART_TX_PIN),
-        _is_ready(false),
-        _sub(sub),
-        _logger(logger),
-        _joystick(true),
-        _indicator_state(false)
-{
-    _rc_thread.start(callback(this, &RCController::update));
-    attach(callback(this, &RCController::watchdog_callback));
-}
+    double Translation::Throttle(int throttleVal) {
+        return Normalize(throttleVal);
+    }
 
-void RCController::watchdog_callback()
-{
-    _logger->send_log(LogPacket::Severity::FATAL, "RCController watchdog triggered");
-    NVIC_SystemReset();
-}
+    double Translation::ThrottleRatio(int throttleVal) {
+        double normalizedValue = Normalize(throttleVal);
+        return (normalizedValue + 1.0) / 2.0;
+    }
 
-bool RCController::getIndicatorState() const
-{
-    return _indicator_state;
-}
+    double Translation::Brake(int brakeVal) {
+        return Normalize(brakeVal);
+    }
+
+    double Translation::Steering(int steerVal) {
+        double normalizedValue = Normalize(steerVal);
+        double steeringAng = 0.0;
+        if (normalizedValue < 0)
+            steeringAng = -normalizedValue * MIN_WHEEL_STEER_DEG;
+        else
+            steeringAng = normalizedValue * MAX_WHEEL_STEER_DEG;
+
+        if (steeringAng > MAX_WHEEL_STEER_DEG)
+            steeringAng = MAX_WHEEL_STEER_DEG;
+        if (steeringAng < MIN_WHEEL_STEER_DEG)
+            steeringAng = MIN_WHEEL_STEER_DEG;
+        if (-0.1 < steeringAng && steeringAng < 0.1)
+            steeringAng = 0.0;
+
+        double steeringAngRad = steeringAng * (M_PI / 180.0);
+        return steeringAngRad;
+    }
+
+    bool Translation::IsActive(int rightToggle) {
+        double rightNorm = Normalize(rightToggle);
+        return (rightNorm < 0.0);
+    }
+
+    bool Translation::IsControllerPassthrough(int leftToggle) {
+        double leftNorm = Normalize(leftToggle);
+        return (leftNorm > 0.5);
+    }
+
+    AutonomyMode Translation::GetAutonomyMode(int rightTriVal) {
+        double rightTriValNorm = Normalize(rightTriVal);
+        if (rightTriValNorm < -0.5)
+            return AUTONOMOUS;
+        else if (rightTriValNorm > 0.5)
+            return MANUAL;
+        else
+            return AUTONOMOUS_OVERRIDE;
+    }
+
+    void RCController::Update()
+    {
+        const uint16_t* busData = m_Receiver.busData();
+
+        while (true) {
+            ThisThread::sleep_for(10ms);
+            IncCount();
+
+            if (!m_Receiver.gatherData())
+                continue;
+
+            if (!m_Receiver.messageAvailable)
+                continue;
+
+            bool emergencyActive = Map.IsActive(busData[ELRS_EMERGENCY_STOP_RIGHT]);
+
+            bool passthroughEnabled = (m_Packet.autonomy_mode == AUTONOMOUS &&
+                                    Map.IsControllerPassthrough(busData[ELRS_LEFT_TOGGLE]));
+
+            m_IndicatorState = passthroughEnabled;
+
+            if (passthroughEnabled) {
+                m_USBConnected = m_Joystick.IsConnected();
+
+                if (m_USBConnected) {
+                    int8_t joystickX = static_cast<int8_t>(Map.Normalize(busData[ELRS_STEERING]) * 127.0);
+                    int8_t joystickY = static_cast<int8_t>(Map.Normalize(busData[ELRS_THROTLE]) * 127.0);
+                    
+                    uint8_t joystickButtons = 0x00;
+                    
+                    double triValue = Map.Normalize(busData[ELRS_TRI_SWITCH_LEFT]);
+                    int selectedButton = 0;
+                    if (triValue < -0.5)
+                        selectedButton = 0;
+                    else if (triValue > 0.5)
+                        selectedButton = 2;
+                    else
+                        selectedButton = 1;
+
+                    bool isActuated = (Map.Normalize(busData[ELRS_SE]) > 0.5);
+
+                    uint8_t dialPercent = static_cast<uint8_t>(Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]) * 100);
+
+                    if (isActuated) {
+                        joystickButtons |= (1 << selectedButton);
+                    }
+
+                    m_Joystick.Update(joystickX, joystickY, joystickButtons, dialPercent);
+                }
+            } else {
+                m_USBConnected = false;
+            }
+
+            bool isAllZero = (std::abs(100 * Map.Normalize(busData[ELRS_THROTLE])) <= 5 &&
+                            std::abs(100 * Map.Normalize(busData[ELRS_STEERING])) <= 5);
+
+            if (isAllZero) {
+                m_Packet.throttle = 0.0;
+                m_Packet.steering = 0.0;
+                m_Packet.brake = 0.0;
+                m_Packet.is_active = emergencyActive;
+                m_Packet.autonomy_mode = Map.GetAutonomyMode(busData[ELRS_TRI_SWITCH_RIGHT]);
+                m_Packet.publish(*m_Sub);
+                continue;
+            }
+
+            m_CurrentThrottle = Map.Throttle(busData[ELRS_THROTLE]);
+            m_Packet.throttle = m_CurrentThrottle * Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]);
+            m_Packet.brake = 0.0;
+            m_Packet.steering = Map.Steering(busData[ELRS_STEERING]);
+            m_Packet.autonomy_mode = Map.GetAutonomyMode(busData[ELRS_TRI_SWITCH_RIGHT]);
+            m_Packet.is_active = emergencyActive;
+
+            m_IsReady = true;
+            m_Packet.publish(*m_Sub);
+        }
+    }
+
+    RCController::RCController(GkcPacketSubscriber* sub, ILogger* logger)
+        : Watchable(DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS, "RCController"),
+        m_Receiver(REMOTE_UART_RX_PIN, REMOTE_UART_TX_PIN),
+        m_Packet{},
+        m_Sub(sub),
+        m_Logger(logger),
+        m_Joystick(true),
+        m_IsReady(false),
+        m_IndicatorState(false)
+    {
+        m_RCThread.start(callback(this, &RCController::Update));
+        Attach(callback(this, &RCController::WatchdogCallback));
+    }
+
+    void RCController::WatchdogCallback() {
+        m_Logger->SendLog(LogPacket::Severity::FATAL, "RCController watchdog triggered");
+        NVIC_SystemReset();
+    }
+
+    bool RCController::GetIndicatorState() const {
+        return m_IndicatorState;
+    }
+
 } // namespace tritonai::gkc

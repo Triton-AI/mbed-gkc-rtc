@@ -1,70 +1,54 @@
 /**
  * @file state_machine.hpp
- * @author Haoru Xue (haoru.xue@autoware.org)
- * @brief
- * @version 0.1
- * @date 2022-02-10
- *
- * @copyright Copyright 2022 Triton AI
- *
+ * @brief State machine for controlling system lifecycle
+ * 
+ * @copyright Copyright 2025 Triton AI
  */
 
-#ifndef STATE_MACHINE_HPP_
-#define STATE_MACHINE_HPP_
+#pragma once
 
 #include "mbed.h"
-
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
 
-namespace tritonai {
-namespace gkc {
+namespace tritonai::gkc {
 
-// The possible results of a state transition
-enum StateTransitionResult {
-  SUCCESS = 0,
-  FAILURE = 1,
-  ERROR = 2,
-  EMERGENCY_STOP = 3,
-  FAILURE_INVALID_TRANSITION = 4
-};
+    // The possible results of a state transition
+    enum StateTransitionResult {
+        SUCCESS = 0,
+        FAILURE = 1,
+        ERROR = 2,
+        EMERGENCY_STOP = 3,
+        FAILURE_INVALID_TRANSITION = 4
+    };
 
-class GkcStateMachine {
-/**
- * @brief GkcStateMachine constructor
- * Constructs a GkcStateMachine object, which has the methods for transitioning
- * between states of the GkcLifecycle. The GkcStateMachine class is an abstract
- * class, and the methods on_initialize, on_deactivate, on_activate, 
- * on_shutdown, on_emergency_stop, and on_reinitialize must be implemented 
- * by the child class.
- */
-public:
-  GkcStateMachine();
+    /**
+     * @class GkcStateMachine
+     * @brief Abstract state machine for controlling system lifecycle
+     */
+    class GkcStateMachine {
+    public:
+        GkcStateMachine();
 
-  StateTransitionResult initialize();
-  StateTransitionResult deactivate();
-  StateTransitionResult activate();
-  StateTransitionResult emergency_stop();
-  StateTransitionResult reinitialize();
+        StateTransitionResult Initialize();
+        StateTransitionResult Deactivate();
+        StateTransitionResult Activate();
+        StateTransitionResult EmergencyStop();
+        StateTransitionResult Reinitialize();
+        
+        GkcLifecycle GetState() const;
 
-  GkcLifecycle get_state() const;
+    protected:
+        // State transition handlers to be implemented by child classes
+        virtual StateTransitionResult OnInitialize(const GkcLifecycle& lastState) = 0;
+        virtual StateTransitionResult OnDeactivate(const GkcLifecycle& lastState) = 0;
+        virtual StateTransitionResult OnActivate(const GkcLifecycle& lastState) = 0;
+        virtual StateTransitionResult OnEmergencyStop(const GkcLifecycle& lastState) = 0;
+        virtual StateTransitionResult OnReinitialize(const GkcLifecycle& lastState) = 0;
 
-// The methods on_initialize, on_deactivate, on_activate, on_shutdown,
-// on_emergency_stop, and on_reinitialize 
-//must be implemented by the child class.
-protected:
-  virtual StateTransitionResult on_initialize(const GkcLifecycle &last_state) = 0;
-  virtual StateTransitionResult on_deactivate(const GkcLifecycle &last_state) = 0;
-  virtual StateTransitionResult on_activate(const GkcLifecycle &last_state) = 0;
-  virtual StateTransitionResult on_emergency_stop(const GkcLifecycle &last_state) = 0;
-  virtual StateTransitionResult on_reinitialize(const GkcLifecycle &last_state) = 0;
+    private:
+        GkcLifecycle m_State{GkcLifecycle::Uninitialized};
+        void CommonChecks();
+        DigitalOut m_Led{LED3, 0};
+    };
 
-// The current state of the state machine
-private:
-  GkcLifecycle state_ {GkcLifecycle::Uninitialized};
-  void common_checks();
-  DigitalOut _led{LED3, 0};
-};
-} // namespace gkc
-} // namespace tritonai
-
-#endif // STATE_MACHINE_HPP_
+} // namespace tritonai::gkc

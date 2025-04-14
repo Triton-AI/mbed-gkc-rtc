@@ -1,16 +1,11 @@
 /**
  * @file config.hpp
- * @author Haoru Xue (haoru.xue@autoware.org)
- * @brief
- * @version 0.1
- * @date 2022-02-11
- *
- * @copyright Copyright 2022 Triton AI
- *
+ * @brief Configuration parameters for the embedded system
+ * 
+ * @copyright Copyright 2025 Triton AI
  */
 
-#ifndef CONFIG_HPP_
-#define CONFIG_HPP_
+#pragma once
 
 // *************
 // Build Options
@@ -20,7 +15,6 @@
 // Communication
 // *************
 // Choose one of the available interfaces
-//#define COMM_USB_SERIAL
 #define COMM_UART_SERIAL
 //#define COMM_ETHERNET  // not implemented
 //#define COMM_CAN  // not implemented
@@ -192,8 +186,8 @@
                             {1.57079, 0.401425},\
                             {1.74532, 0.453785},\
                             {1.91986, 0.506145}}; // takes first and last column
-#define MIN__WHEEL_STEER_DEG -20
-#define MAX__WHEEL_STEER_DEG 20
+#define MIN_WHEEL_STEER_DEG -20
+#define MAX_WHEEL_STEER_DEG 20
 #define MOTOR_OFFSET 0.3
 
 // *****
@@ -202,11 +196,9 @@
 #define ESTOP_PIN PB_10
 
 //PWM pins for RC car
-
 #define Steer_Pin PA_5
 #define Throttle_Pin PA_6
 #define Red_Pin PD_12
-
 
 //// ELRS
 #define ELRS_THROTLE 1
@@ -217,5 +209,3 @@
 #define ELRS_TRI_SWITCH_LEFT 5
 #define ELRS_RATIO_THROTTLE 9
 #define ELRS_SE 8
-
-#endif // CONFIG_HPP_

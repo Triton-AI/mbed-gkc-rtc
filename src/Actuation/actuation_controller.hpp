@@ -1,5 +1,11 @@
-#ifndef ACTUATION_CONTROLLER_HPP_
-#define ACTUATION_CONTROLLER_HPP_
+/**
+ * @file actuation_controller.hpp
+ * @brief Controller for vehicle actuation systems
+ * 
+ * @copyright Copyright 2025 Triton AI
+ */
+
+#pragma once
 
 #include "Mutex.h"
 #include "Queue.h"
@@ -9,27 +15,58 @@
 #include <cstdint>
 
 namespace tritonai::gkc {
-class ActuationController {
-public:
-  explicit ActuationController(ILogger *logger);
 
-  void set_throttle_cmd(float cmd);
-  void set_steering_cmd(float cmd);
-  void set_brake_cmd(float cmd);
-  void full_rel_rev_current_brake();
+    /**
+     * @brief Controls vehicle actuation systems (throttle, steering, brakes)
+     */
+    class ActuationController {
+    public:
+        /**
+         * @brief Constructor
+         * @param logger Logger instance for debugging
+         */
+        explicit ActuationController(ILogger* logger);
 
-  float clamp(float val, float max, float min) {
-    if (val < min)
-      return min;
-    else if (val > max)
-      return max;
-    else
-      return val;
-  }
+        /**
+         * @brief Set throttle command
+         * @param cmd Throttle value
+         */
+        void SetThrottleCmd(float cmd);
+        
+        /**
+         * @brief Set steering command
+         * @param cmd Steering value
+         */
+        void SetSteeringCmd(float cmd);
+        
+        /**
+         * @brief Set brake command
+         * @param cmd Brake value
+         */
+        void SetBrakeCmd(float cmd);
+        
+        /**
+         * @brief Apply full reverse current brake
+         */
+        void FullRelRevCurrentBrake();
 
-  ILogger *_logger;
+        /**
+         * @brief Clamp a value between min and max
+         * @param val Value to clamp
+         * @param max Maximum allowed value
+         * @param min Minimum allowed value
+         * @return Clamped value
+         */
+        float Clamp(float val, float max, float min) {
+            if (val < min)
+                return min;
+            else if (val > max)
+                return max;
+            else
+                return val;
+        }
 
-};
-} // namespace gkc
+        ILogger* m_Logger;
+    };
 
-#endif // ACTUATION_CONTROLLER_HPP_
+} // namespace tritonai::gkc

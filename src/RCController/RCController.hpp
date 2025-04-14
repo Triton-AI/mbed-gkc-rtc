@@ -1,5 +1,11 @@
-#ifndef RC_CONTROLLER_HPP_
-#define RC_CONTROLLER_HPP_
+/**
+ * @file RCController.hpp
+ * @brief Remote Control interface for the gokart controller
+ * 
+ * @copyright Copyright 2025 Triton AI
+ */
+
+#pragma once
 
 #include "config.hpp"
 #include "math.h"
@@ -10,54 +16,54 @@
 #include "Tools/logger.hpp"
 #include <Thread.h>
 
-namespace tritonai::gkc
-{
+namespace tritonai::gkc {
 
-struct Translation
-{
-    double normalize(int analogValue);
-    double steering(int steerVal);
-    double throttle(int throttleVal);
-    double throttle_ratio(int throttleVal);
-    bool keep_constant_thr(int throttleVal);
-    double brake(int brakeVal);
-    bool is_active(int right_toggle);
-    bool isControllerPassthrough(int left_toggle);
-    AutonomyMode getAutonomyMode(int rightTriVal);
-    bool isLeftTriSwitchUp(int leftTriVal);
-};
+    struct Translation
+    {
+        double Normalize(int analogValue);
+        double Steering(int steerVal);
+        double Throttle(int throttleVal);
+        double ThrottleRatio(int throttleVal);
+        bool IsConstantThrottle(int throttleVal);
+        double Brake(int brakeVal);
+        bool IsActive(int right_toggle);
+        bool IsControllerPassthrough(int left_toggle);
+        AutonomyMode GetAutonomyMode(int rightTriVal);
+    };
 
-class RCController : public Watchable
-{
+    /**
+     * @class RCController
+     * @brief Manages remote control inputs and converts them to vehicle commands
+     */
+    class RCController : public Watchable
+    {
     public:
-    explicit RCController(GkcPacketSubscriber *sub, ILogger *logger);
-    const RCControlGkcPacket& getPacket(){ 
-        _is_ready = false;
-        return _packet;
-    }
-    
-    bool getIndicatorState() const;
-    bool isUSBConnected() const { return _usb_connected; }
+        explicit RCController(GkcPacketSubscriber* sub, ILogger* logger);
+        
+        const RCControlGkcPacket& GetPacket() {
+            m_IsReady = false;
+            return m_Packet;
+        }
+        
+        bool GetIndicatorState() const;
+        bool IsUSBConnected() const { return m_USBConnected; }
 
     protected:
-    void update();
-    Translation Map;
-    Thread _rc_thread{osPriorityNormal, OS_STACK_SIZE*2, nullptr, "rc_thread"};
-    void watchdog_callback();
-    
+        void Update();
+        Translation Map;
+        Thread m_RCThread{osPriorityNormal, OS_STACK_SIZE*2, nullptr, "rc_thread"};
+        void WatchdogCallback();
 
     private:
-    elrc_receiver _receiver;
-    RCControlGkcPacket _packet{};
-    bool _is_ready;
-    GkcPacketSubscriber *_sub;
-    float current_throttle=0.0;
-    USBJoystick _joystick;
-    bool _indicator_state;
-    bool _usb_connected{false};
-    ILogger *_logger;
-};
+        elrc_receiver m_Receiver;
+        RCControlGkcPacket m_Packet{};
+        GkcPacketSubscriber* m_Sub;
+        ILogger* m_Logger;
+        USBJoystick m_Joystick;
+        bool m_IsReady;
+        float m_CurrentThrottle = 0.0;
+        bool m_IndicatorState;
+        bool m_USBConnected{false};
+    };
 
 } // namespace tritonai::gkc
-
-#endif  // RC_CONTROLLER_HPP_

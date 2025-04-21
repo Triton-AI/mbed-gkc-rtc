@@ -44,7 +44,7 @@ namespace tritonai::gkc {
         
         // Check for controller passthrough mode
         bool passthroughMode = (m_CurrentAutonomyMode == AUTONOMOUS && 
-                            m_RcController.GetIndicatorState());
+                                m_RcController.GetIndicatorState());
         
         // Check USB connection when in passthrough mode
         if (passthroughMode) {
@@ -172,6 +172,8 @@ namespace tritonai::gkc {
         NVIC_SystemReset();
     }
 
+    // ILogger API IMPLEMENTATION
+    // TODO: SendLog partially implemented, complete the implementation
     void Controller::SendLog(const LogPacket::Severity& severity, const std::string& what) {
         if(severity == LogPacket::Severity::FATAL && m_Severity <= severity)
             std::cerr << "Fatal: " << what << std::endl;

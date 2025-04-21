@@ -88,7 +88,28 @@ namespace tritonai::gkc {
             if (!m_Receiver.messageAvailable)
                 continue;
 
+            // std::cout << "Bus data: " << (int)(100*busData[0]) <<
+            //     " " << (int)(100*busData[1]) <<
+            //     " " << (int)(100*busData[2]) <<
+            //     " " << (int)(100*busData[3]) <<
+            //     " " << (int)(100*busData[4]) <<
+            //     " " << (int)(100*busData[5]) <<
+            //     " " << (int)(100*busData[6]) <<
+            //     " " << (int)(100*busData[7]) <<
+            //     " " << (int)(100*busData[8]) <<
+            //     std::endl;
+
             bool emergencyActive = Map.IsActive(busData[ELRS_EMERGENCY_STOP_RIGHT]);
+
+            // Activate the brake during emergency
+            if(!emergencyActive) {
+                m_Packet.throttle = 0.0;
+                m_Packet.steering = 0.0;
+                m_Packet.brake = Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]);
+                m_Packet.is_active = emergencyActive;
+                m_Packet.publish(*m_Sub);
+                continue;
+            }
 
             bool passthroughEnabled = (m_Packet.autonomy_mode == AUTONOMOUS &&
                                     Map.IsControllerPassthrough(busData[ELRS_LEFT_TOGGLE]));
@@ -142,7 +163,7 @@ namespace tritonai::gkc {
 
             m_CurrentThrottle = Map.Throttle(busData[ELRS_THROTLE]);
             m_Packet.throttle = m_CurrentThrottle * Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]);
-            m_Packet.brake = 0.0;
+            m_Packet.brake = 0.0; // TODO: Implement brake
             m_Packet.steering = Map.Steering(busData[ELRS_STEERING]);
             m_Packet.autonomy_mode = Map.GetAutonomyMode(busData[ELRS_TRI_SWITCH_RIGHT]);
             m_Packet.is_active = emergencyActive;

@@ -14,6 +14,8 @@
 #include "Actuation/actuation_controller.hpp"
 #include "RCController/RCController.hpp"
 #include "StateMachine/state_machine.hpp"
+#include "Sensor/brake_pressure_sensor.hpp"
+#include "Sensor/wheel_speed_sensor.hpp"
 #include <chrono>
 
 namespace tritonai::gkc {
@@ -68,6 +70,8 @@ namespace tritonai::gkc {
         SensorReader m_SensorReader;
         ActuationController m_Actuation;
         RCController m_RcController;
+        BrakePressureSensor m_BrakePressureSensor;
+        WheelSpeedSensor m_WheelSpeedSensor;
 
         Thread m_KeepAliveThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
         bool m_RcCommanding{false};

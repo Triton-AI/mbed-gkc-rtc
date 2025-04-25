@@ -142,12 +142,14 @@ namespace tritonai::gkc {
     Controller::Controller() :
         Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"),
         GkcStateMachine(),
-        m_Severity(LogPacket::Severity::DEBUG),
+        m_Severity(LogPacket::Severity::FATAL),
         m_Comm(this, this),
         m_Watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS, this),
         m_SensorReader(this),
         m_Actuation(this),
         m_RcController(this, this),
+        m_BrakePressureSensor(this),
+        m_WheelSpeedSensor(this),
         m_RcHeartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat")
     {
         Attach(callback(this, &Controller::WatchdogCallback));
@@ -163,6 +165,9 @@ namespace tritonai::gkc {
             m_RcHeartbeat.Attach(callback(this, &Controller::OnRcDisconnect));
             m_Watchdog.AddToWatchlist(&m_RcHeartbeat);
         }
+
+        m_SensorReader.RegisterProvider(&m_BrakePressureSensor);
+        m_SensorReader.RegisterProvider(&m_WheelSpeedSensor); 
 
         SendLog(LogPacket::Severity::INFO, "Controller initialized");
     }
@@ -281,6 +286,9 @@ namespace tritonai::gkc {
     // TODO: Implement the sensor packet callback
     void Controller::packet_callback(const SensorGkcPacket& packet) {
         SendLog(LogPacket::Severity::DEBUG, "SensorGkcPacket received");
+
+        SendLog(LogPacket::Severity::INFO, 
+            "Current brake pressure: " + std::to_string(packet.values.brake_pressure) + " PSI");
     }
 
     // TODO: Implement the shutdown1 packet callbacks

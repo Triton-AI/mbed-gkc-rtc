@@ -164,6 +164,19 @@
 // *******
 // Sensors
 // *******
+// Wheel Speed Sensor
+#define WHEEL_SPEED_SENSOR_PIN PE_14   // Digital input for hall effect sensor
+#define ABS_RING_TEETH_COUNT 48        // Number of teeth/magnets on the ABS ring
+#define WHEEL_DIAMETER_M 0.58          // Wheel diameter in meters
+#define WHEEL_CIRCUMFERENCE_M (WHEEL_DIAMETER_M * M_PI)  // Wheel circumference in meters
+#define SPEED_SAMPLE_PERIOD_MS 50     // Sample period for speed calculation in milliseconds
+#define PULSES_PER_REVOLUTION ABS_RING_TEETH_COUNT  // Number of pulses per wheel revolution
+
+// Brake pressure sensor
+#define BRAKE_PRESSURE_SENSOR_PIN PA_0
+#define BRAKE_PRESSURE_MAX_PSI 1000.0f     // Maximum pressure in PSI
+#define BRAKE_PRESSURE_MIN_PSI 0.0f       // Minimum pressure in PSI
+
 // PWM steering encoder
 #define STEER_ENCODER_PIN PC_7
 

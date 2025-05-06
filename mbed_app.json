@@ -1,7 +1,10 @@
 {
   "target_overrides": {
     "*": {
-      "target.usb_device": true
+      "target.usb_device": true,
+      "target.printf_lib": "minimal-printf",
+      "platform.minimal-printf-enable-floating-point": true,
+      "platform.minimal-printf-set-floating-point-max-decimals": 2
     }
   }
 }

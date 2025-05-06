@@ -10,7 +10,7 @@
 #include "config.hpp"
 #include "math.h"
 #include "elrs_receiver.hpp"
-#include "USBJoystick/USBJoystick.hpp"
+#include "USBJoystick/usb_joystick.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Watchdog/watchable.hpp"
 #include "Tools/logger.hpp"

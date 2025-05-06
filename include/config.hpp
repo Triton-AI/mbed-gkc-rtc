@@ -74,7 +74,7 @@
 // How ofteh the controller should be checked by watchdog
 #define DEFAULT_CONTROLLER_POLL_INTERVAL_MS 1000
 #define DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
-// How often should the RCCOntroller be checked by watchdog
+// How often should the rc_controller be checked by watchdog
 #define DEFAULT_RC_CONTROLLER_POLL_INTERVAL_MS 100
 #define DEFAULT_RC_CONTROLLER_POLL_LOST_TOLERANCE_MS 3000
 // How often should RC Heartbeat be checked by watchdog
@@ -146,9 +146,9 @@
 // Throttle
 #define THROTTLE_CAN_PORT  2 // To which can port should the throttle be sent
 #define THROTTLE_CAN_ID 1    // To which can port should the throttle be sent
-#define THROTTLE_MAX_REVERSE_SPEED 20.0 // m/s
-#define THROTTLE_MAX_FORWARD_SPEED 20.0 // m/s
-#define RC_MAX_SPEED_FORWARD 20.0 // m/s
+#define THROTTLE_MAX_REVERSE_SPEED 5.0 // m/s
+#define THROTTLE_MAX_FORWARD_SPEED 5.0 // m/s
+#define RC_MAX_SPEED_FORWARD 5.0 // m/s
 #define RC_MAX_SPEED_REVERSE 5.0 // m/s
 
 // Steering
@@ -166,11 +166,10 @@
 // *******
 // Wheel Speed Sensor
 #define WHEEL_SPEED_SENSOR_PIN PE_14   // Digital input for hall effect sensor
-#define ABS_RING_TEETH_COUNT 48        // Number of teeth/magnets on the ABS ring
-#define WHEEL_DIAMETER_M 0.58          // Wheel diameter in meters
+#define WHEEL_DIAMETER_M 0.254          // Wheel diameter in meters
 #define WHEEL_CIRCUMFERENCE_M (WHEEL_DIAMETER_M * M_PI)  // Wheel circumference in meters
 #define SPEED_SAMPLE_PERIOD_MS 50     // Sample period for speed calculation in milliseconds
-#define PULSES_PER_REVOLUTION ABS_RING_TEETH_COUNT  // Number of pulses per wheel revolution
+#define PULSES_PER_REVOLUTION 52      // Number of pulses per wheel revolution
 
 // Brake pressure sensor
 #define BRAKE_PRESSURE_SENSOR_PIN PA_0

@@ -12,7 +12,7 @@
 #include "Watchdog/watchdog.hpp"
 #include "Sensor/sensor_reader.hpp"
 #include "Actuation/actuation_controller.hpp"
-#include "RCController/RCController.hpp"
+#include "RCController/rc_controller.hpp"
 #include "StateMachine/state_machine.hpp"
 #include "Sensor/brake_pressure_sensor.hpp"
 #include "Sensor/wheel_speed_sensor.hpp"

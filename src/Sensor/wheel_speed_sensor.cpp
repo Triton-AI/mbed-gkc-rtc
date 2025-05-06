@@ -7,6 +7,7 @@
 
 #include "wheel_speed_sensor.hpp"
 #include <string>
+#include <chrono>
 
 namespace tritonai::gkc {
 
@@ -25,11 +26,17 @@ namespace tritonai::gkc {
         // Start timer for speed calculation
         m_Timer.start();
         
+        // Wait a moment for things to stabilize
+        ThisThread::sleep_for(100ms);
+        
         // Set up rising edge interrupt for pulse detection
         // Use static method with context pointer to avoid implicit 'this' capture
         m_SpeedSensor.rise(callback(PulseDetectedStatic, this));
         
-        m_Logger->SendLog(LogPacket::Severity::INFO, 
+        // Initialize the last pulse count to current to prevent counting initial noise
+        m_LastPulseCount = m_PulseCount;
+        
+        m_Logger->SendLog(LogPacket::Severity::FATAL, 
                         "Wheel speed sensor initialized on pin " + std::to_string(WHEEL_SPEED_SENSOR_PIN));
     }
 
@@ -42,9 +49,11 @@ namespace tritonai::gkc {
     // Static ISR-safe callback that receives context as parameter
     void WheelSpeedSensor::PulseDetectedStatic(void* obj) {
         WheelSpeedSensor* sensor = static_cast<WheelSpeedSensor*>(obj);
+        uint32_t currentTime = sensor->m_Timer.elapsed_time().count();
         
-        // Capture time using timer directly (ISR-safe)
-        sensor->m_CurrentTimerValue = sensor->m_Timer.read_us();
+        // Update time values
+        sensor->m_LastTimerValue = sensor->m_CurrentTimerValue;
+        sensor->m_CurrentTimerValue = currentTime;
         
         // Increment pulse counter (atomic operation)
         sensor->m_PulseCount++;
@@ -56,7 +65,10 @@ namespace tritonai::gkc {
     void WheelSpeedSensor::CalculateSpeed() {
         // Use local copies of volatile variables
         uint32_t pulseCount = m_PulseCount;
-        uint32_t currentTime = m_Timer.read_ms();
+        
+        // Fix for deprecated read_ms() method, using Chrono-based method
+        uint32_t currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(m_Timer.elapsed_time()).count();
+        
         uint32_t pulseDelta = pulseCount - m_LastPulseCount;
         uint32_t timeDelta = currentTime - m_LastCalculationTime;
         
@@ -66,7 +78,7 @@ namespace tritonai::gkc {
             if (pulseDelta == 0 && (currentTime - m_CurrentTimerValue/1000) > 500) {
                 // Log when speed drops to zero (only once)
                 if (m_CurrentSpeed > 0.0f) {
-                    m_Logger->SendLog(LogPacket::Severity::INFO, "Vehicle stopped");
+                    m_Logger->SendLog(LogPacket::Severity::FATAL, "Vehicle stopped");
                 }
                 m_CurrentSpeed = 0.0f;
             } 
@@ -89,7 +101,7 @@ namespace tritonai::gkc {
                 static int lastLoggedMeter = 0;
                 int currentMeter = static_cast<int>(m_TotalDistance);
                 if (currentMeter > lastLoggedMeter) {
-                    m_Logger->SendLog(LogPacket::Severity::DEBUG, 
+                    m_Logger->SendLog(LogPacket::Severity::FATAL, 
                                     "Distance traveled: " + std::to_string(currentMeter) + " meters");
                     lastLoggedMeter = currentMeter;
                 }
@@ -118,10 +130,14 @@ namespace tritonai::gkc {
         pkt.values.wheel_speed_rl = m_CurrentSpeed;
         pkt.values.wheel_speed_rr = m_CurrentSpeed;
         
-        // Log current speed for debugging (only when moving)
-        if (m_CurrentSpeed > 0.1f) {
-            m_Logger->SendLog(LogPacket::Severity::DEBUG, 
-                            "Current wheel speed: " + std::to_string(m_CurrentSpeed) + " m/s");
+        // Log current speed for debugging (only when moving and at reduced frequency)
+        static uint32_t lastSpeedLog = 0;
+        uint32_t currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(m_Timer.elapsed_time()).count();
+        if (m_CurrentSpeed > 0.1f && (currentTime - lastSpeedLog > 1000)) {
+            m_Logger->SendLog(LogPacket::Severity::FATAL, 
+                        "Current wheel speed: " + std::to_string(m_CurrentSpeed) + " m/s, " +
+                        "Distance: " + std::to_string(m_TotalDistance) + " m");
+            lastSpeedLog = currentTime;
         }
     }
 
@@ -131,6 +147,12 @@ namespace tritonai::gkc {
 
     float WheelSpeedSensor::GetDistance() const {
         return m_TotalDistance;
+    }
+
+    void WheelSpeedSensor::ResetDistance() {
+        m_TotalDistance = 0.0f;
+        m_LastPulseCount = m_PulseCount; // Start counting from current pulse count
+        m_Logger->SendLog(LogPacket::Severity::DEBUG, "Distance traveled reset to 0");
     }
 
 } // namespace tritonai::gkc

@@ -42,8 +42,8 @@ namespace tritonai::gkc {
             m_Logger->SendLog(LogPacket::Severity::ERROR, "Serial not writable");
             return 0;
         }
-     size_t bytes = m_UartSerial->write(buffer.data(), buffer.size());
-     return bytes;
+        size_t bytes = m_UartSerial->write(buffer.data(), buffer.size());
+        return bytes;
     }
 
     void CommManager::WatchdogCallback() {

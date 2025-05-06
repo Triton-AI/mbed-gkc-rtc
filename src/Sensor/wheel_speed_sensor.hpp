@@ -39,6 +39,11 @@
           */
          float GetDistance() const;
          
+         /**
+          * @brief Reset the distance traveled counter
+          */
+         void ResetDistance();
+         
      private:
          InterruptIn m_SpeedSensor;
          ILogger* m_Logger;

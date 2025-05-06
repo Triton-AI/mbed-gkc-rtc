@@ -5,7 +5,7 @@
  * @copyright Copyright 2025 Triton AI
  */
 
-#include "RCController.hpp"
+#include "rc_controller.hpp"
 #include <iostream>
 #include <string>
 

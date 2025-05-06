@@ -5,7 +5,7 @@
  * @copyright Copyright 2025 Triton AI
  */
 
-#include "USBJoystick.hpp"
+#include "usb_joystick.hpp"
 #include <cstring>
 
 namespace tritonai::gkc {

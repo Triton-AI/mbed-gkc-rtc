@@ -142,7 +142,7 @@ namespace tritonai::gkc {
     Controller::Controller() :
         Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"),
         GkcStateMachine(),
-        m_Severity(LogPacket::Severity::FATAL),
+        m_Severity(LogPacket::Severity::WARNING),
         m_Comm(this, this),
         m_Watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS, this),
         m_SensorReader(this),
@@ -388,6 +388,10 @@ namespace tritonai::gkc {
         SendLog(LogPacket::Severity::INFO, "Controller initializing");
         m_Watchdog.Arm();
         SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE);
+        
+        // Reset distance counter
+        m_WheelSpeedSensor.ResetDistance();
+        
         return StateTransitionResult::SUCCESS;
     }
 
@@ -424,6 +428,10 @@ namespace tritonai::gkc {
         m_ThrottleVescDisable = 0;
         m_SteeringVescDisable = 0;
         m_EmergencyActive = false;
+        
+        // Reset distance counter
+        m_WheelSpeedSensor.ResetDistance();
+        
         return StateTransitionResult::SUCCESS;
     }
 

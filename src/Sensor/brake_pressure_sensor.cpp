@@ -13,7 +13,7 @@ namespace tritonai::gkc {
     BrakePressureSensor::BrakePressureSensor(ILogger* logger)
         : m_BrakeSensor(BRAKE_PRESSURE_SENSOR_PIN), m_Logger(logger), m_CurrentPressure(0.0f) 
     {
-        m_Logger->SendLog(LogPacket::Severity::INFO, 
+        m_Logger->SendLog(LogPacket::Severity::DEBUG, 
                         "Brake pressure sensor initialized on pin " + std::to_string(BRAKE_PRESSURE_SENSOR_PIN));
     }
 

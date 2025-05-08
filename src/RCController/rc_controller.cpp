@@ -54,14 +54,12 @@ namespace tritonai::gkc {
         return steeringAngRad;
     }
 
-    bool Translation::IsActive(int rightToggle) {
-        double rightNorm = Normalize(rightToggle);
-        return (rightNorm < 0.0);
-    }
-
-    bool Translation::IsControllerPassthrough(int leftToggle) {
-        double leftNorm = Normalize(leftToggle);
-        return (leftNorm > 0.5);
+    bool Translation::IsActive(int switch1, int switch2) {
+        double switch1Norm = Normalize(switch1);
+        double switch2Norm = Normalize(switch2);
+        
+        // Both switches need to be in the active position (negative normalized value)
+        return (switch1Norm < 0.0 && switch2Norm < 0.0);
     }
 
     AutonomyMode Translation::GetAutonomyMode(int rightTriVal) {
@@ -99,7 +97,10 @@ namespace tritonai::gkc {
             //     " " << (int)(100*busData[8]) <<
             //     std::endl;
 
-            bool emergencyActive = Map.IsActive(busData[ELRS_EMERGENCY_STOP_RIGHT]);
+            bool emergencyActive = Map.IsActive(
+                busData[ELRS_EMERGENCY_STOP_LEFT],
+                busData[ELRS_EMERGENCY_STOP_RIGHT]
+            );
 
             // Activate the brake during emergency
             if(!emergencyActive) {
@@ -111,9 +112,8 @@ namespace tritonai::gkc {
                 continue;
             }
 
-            bool passthroughEnabled = (m_Packet.autonomy_mode == AUTONOMOUS &&
-                                    Map.IsControllerPassthrough(busData[ELRS_LEFT_TOGGLE]));
-
+            // Use board button for passthrough mode instead of RC button
+            bool passthroughEnabled = (m_Packet.autonomy_mode == AUTONOMOUS && g_PassthroughEnabled);
             m_IndicatorState = passthroughEnabled;
 
             if (passthroughEnabled) {

@@ -9,10 +9,19 @@
 #include "mbed.h"
 #include "Controller/controller.hpp"
 
+// Global variable for controller passthrough state
+bool g_PassthroughEnabled = false;
+
+// Button callback for toggling passthrough mode
+void TogglePassthrough() {
+    g_PassthroughEnabled = !g_PassthroughEnabled;
+}
+
 InterruptIn button(BUTTON1);
 
 int main() {
-    button.rise(&NVIC_SystemReset);
+    // Change user button to toggle passthrough instead of reset
+    button.rise(&TogglePassthrough);
     
     new tritonai::gkc::Controller();
     

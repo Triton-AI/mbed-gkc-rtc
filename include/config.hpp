@@ -148,8 +148,8 @@
 #define THROTTLE_CAN_ID 1    // To which can port should the throttle be sent
 #define THROTTLE_MAX_REVERSE_SPEED 5.0 // m/s
 #define THROTTLE_MAX_FORWARD_SPEED 5.0 // m/s
-#define RC_MAX_SPEED_FORWARD 5.0 // m/s
-#define RC_MAX_SPEED_REVERSE 5.0 // m/s
+#define RC_MAX_SPEED_FORWARD 2.5 // m/s
+#define RC_MAX_SPEED_REVERSE 2.5 // m/s
 
 // Steering
 #define STEER_CAN_PORT  2 // To which can port should the throttle be sent
@@ -215,7 +215,7 @@
 //// ELRS
 #define ELRS_THROTLE 1
 #define ELRS_STEERING 3
-#define ELRS_LEFT_TOGGLE 4
+#define ELRS_EMERGENCY_STOP_LEFT 4
 #define ELRS_EMERGENCY_STOP_RIGHT 7
 #define ELRS_TRI_SWITCH_RIGHT 6
 #define ELRS_TRI_SWITCH_LEFT 5

@@ -16,6 +16,8 @@
 #include "Tools/logger.hpp"
 #include <Thread.h>
 
+extern bool g_PassthroughEnabled;
+
 namespace tritonai::gkc {
 
     struct Translation
@@ -26,8 +28,7 @@ namespace tritonai::gkc {
         double ThrottleRatio(int throttleVal);
         bool IsConstantThrottle(int throttleVal);
         double Brake(int brakeVal);
-        bool IsActive(int right_toggle);
-        bool IsControllerPassthrough(int left_toggle);
+        bool IsActive(int leftToggle, int rightToggle);
         AutonomyMode GetAutonomyMode(int rightTriVal);
     };
 
@@ -47,7 +48,7 @@ namespace tritonai::gkc {
         
         bool GetIndicatorState() const;
         bool IsUSBConnected() const { return m_USBConnected; }
-
+        
     protected:
         void Update();
         Translation Map;

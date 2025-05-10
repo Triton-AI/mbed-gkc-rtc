@@ -142,7 +142,7 @@ namespace tritonai::gkc {
     Controller::Controller() :
         Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"),
         GkcStateMachine(),
-        m_Severity(LogPacket::Severity::WARNING),
+        m_Severity(LogPacket::Severity::FATAL),
         m_Comm(this, this),
         m_Watchdog(DEFAULT_WD_INTERVAL_MS, DEFAULT_WD_MAX_INACTIVITY_MS, DEFAULT_WD_WAKEUP_INTERVAL_MS, this),
         m_SensorReader(this),

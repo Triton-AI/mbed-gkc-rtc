@@ -194,7 +194,7 @@ class GokartController:
             state = payload[2]
             state_name = self.STATE_NAMES.get(state, "UNKNOWN")
                 
-            logger.info(f"Decoded Heartbeat: counter={counter}, state={state_name}")
+            # logger.info(f"Decoded Heartbeat: counter={counter}, state={state_name}")
             
         elif packet_type == PacketType.FIRMWARE_VERSION and len(payload) >= 4:
             major = payload[1]
@@ -287,19 +287,19 @@ class GokartController:
         
         # Step 1: Handshake
         self.send_handshake()
-        time.sleep(0.5)
+        # time.sleep(0.5)
         
         # Step 2: Send configuration
         self.send_config()
-        time.sleep(0.5)
+        # time.sleep(0.5)
         
         # Step 3: Request transition to Inactive state first
         self.send_state_transition(self.INACTIVE)
-        time.sleep(0.5)
+        # time.sleep(0.5)
         
         # Step 4: Request transition to Active state
         self.send_state_transition(self.ACTIVE)
-        time.sleep(0.5)
+        # time.sleep(0.5)
         
         logger.info("Initialization complete!")
 
@@ -331,8 +331,8 @@ def main():
     parser = argparse.ArgumentParser(description='Go-Kart Controller')
     
     # Basic connection settings
-    parser.add_argument('--port', '-p', default='/dev/cu.usbserial-110', 
-                      help='Serial port (default: /dev/cu.usbserial-110)')
+    parser.add_argument('--port', '-p', default='/dev/ttyUSB0', 
+                      help='Serial port (default: /dev/ttyUSB0)')
     parser.add_argument('--baudrate', '-b', type=int, default=115200, 
                       help='Baud rate (default: 115200)')
     parser.add_argument('--debug', '-d', action='store_true', 
@@ -375,6 +375,15 @@ def main():
         # Apply brake
         logger.info("Applying brake...")
         controller.send_control(0.0, 0.0, 0.25)  # No throttle, neutral steering, 25% brake
+        time.sleep(1)  # Brake for 1 second
+
+        controller.send_control(0.0, 0.0, 0.5)  # No throttle, neutral steering, 25% brake
+        time.sleep(1)  # Brake for 1 second
+
+        controller.send_control(0.0, 0.0, 0.75)  # No throttle, neutral steering, 25% brake
+        time.sleep(1)  # Brake for 1 second
+
+        controller.send_control(0.0, 0.0, 1.0)  # No throttle, neutral steering, 25% brake
         time.sleep(1)  # Brake for 1 second
         
         # Emergency stop

@@ -106,7 +106,7 @@ namespace tritonai::gkc {
             if(!emergencyActive) {
                 m_Packet.throttle = 0.0;
                 m_Packet.steering = 0.0;
-                m_Packet.brake = Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]);
+                m_Packet.brake = EMERGENCY_BRAKE_PRESSURE;
                 m_Packet.is_active = emergencyActive;
                 m_Packet.publish(*m_Sub);
                 continue;

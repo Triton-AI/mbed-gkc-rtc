@@ -95,7 +95,7 @@ namespace tritonai::gkc {
         SensorGkcPacket m_Packet{};
         std::vector<ISensorProvider*> m_Providers{};
         Mutex m_ProvidersLock;
-        std::chrono::milliseconds m_PollInterval{DEFAULT_SENSOR_POLL_INTERVAL_MS};
+        std::chrono::milliseconds m_PollInterval{SEND_SENSOR_INTERVAL_MS};
 
         Thread m_SensorPollThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "sensor_poll_thread"};
         void SensorPollThreadImpl();

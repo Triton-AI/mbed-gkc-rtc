@@ -121,7 +121,7 @@ namespace tritonai::gkc {
 
                 if (m_USBConnected) {
                     int8_t joystickX = static_cast<int8_t>(Map.Normalize(busData[ELRS_STEERING]) * 127.0);
-                    int8_t joystickY = static_cast<int8_t>(Map.Normalize(busData[ELRS_THROTLE]) * 127.0);
+                    int8_t joystickY = static_cast<int8_t>(Map.Normalize(busData[ELRS_THROTTLE]) * 127.0);
                     
                     uint8_t joystickButtons = 0x00;
                     
@@ -148,7 +148,7 @@ namespace tritonai::gkc {
                 m_USBConnected = false;
             }
 
-            bool isAllZero = (std::abs(100 * Map.Normalize(busData[ELRS_THROTLE])) <= 5 &&
+            bool isAllZero = (std::abs(100 * Map.Normalize(busData[ELRS_THROTTLE])) <= 5 &&
                             std::abs(100 * Map.Normalize(busData[ELRS_STEERING])) <= 5);
 
             if (isAllZero) {
@@ -161,7 +161,7 @@ namespace tritonai::gkc {
                 continue;
             }
 
-            m_CurrentThrottle = Map.Throttle(busData[ELRS_THROTLE]);
+            m_CurrentThrottle = Map.Throttle(busData[ELRS_THROTTLE]);
             m_Packet.throttle = m_CurrentThrottle * Map.ThrottleRatio(busData[ELRS_RATIO_THROTTLE]);
             m_Packet.brake = 0.0; // TODO: Implement brake
             m_Packet.steering = Map.Steering(busData[ELRS_STEERING]);

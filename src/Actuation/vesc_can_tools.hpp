@@ -148,10 +148,9 @@ namespace tritonai::gkc {
     }
 
     void CommCanSetSpeed(float speedMs) {
-        float motorPoles = 5.0;
-        float gearRatio = 59.0/22.0;
-        float wheelCircumference = 0.85; // in meters
-        float speedToErpm = speedMs * motorPoles * gearRatio / wheelCircumference * 60.0;
+        // For example: 1 mps
+        // (1*5*59/22*60)/(0.254*pi) = 1,008.2471341183
+        float speedToErpm = speedMs * NUM_MOTOR_POLES * GEAR_RATIO / WHEEL_CIRCUMFERENCE_M * 60.0;
         CommCanSetRpm(THROTTLE_CAN_ID, speedToErpm);
     }
 
@@ -175,7 +174,7 @@ namespace tritonai::gkc {
     }
 
     float MapSteer2Motor(float steerAngle) {
-        std::map<float, float> mapping = STERING_MAPPING;
+        std::map<float, float> mapping = STEERING_MAPPING;
         int sign = steerAngle >= 0 ? 1 : -1;
 
         for (auto it = mapping.begin(); it != mapping.end(); it++) {

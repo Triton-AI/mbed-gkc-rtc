@@ -16,7 +16,7 @@ namespace tritonai::gkc {
     ActuationController::ActuationController(ILogger* logger) : m_Logger(logger) {}
 
     void ActuationController::SetThrottleCmd(float cmd) {
-        cmd = ActuationController::Clamp(cmd, THROTTLE_MAX_REVERSE_SPEED, -1.0f*THROTTLE_MAX_REVERSE_SPEED);
+        cmd = ActuationController::Clamp(cmd, THROTTLE_MAX_FORWARD_SPEED, -1.0f*THROTTLE_MAX_REVERSE_SPEED);
         CommCanSetSpeed(cmd);
     }
 

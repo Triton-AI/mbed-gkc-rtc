@@ -342,7 +342,7 @@ namespace tritonai::gkc {
 
         if(packet.autonomy_mode == AUTONOMOUS) {
             m_RcCommanding = false;
-            SendLog(LogPacket::Severity::INFO, "RCControlGkcPacket is in autonomous mode, ignoring");
+            SendLog(LogPacket::Severity::DEBUG, "RCControlGkcPacket is in autonomous mode, ignoring");
             return;
         }
 
@@ -369,7 +369,7 @@ namespace tritonai::gkc {
         float throttleSpeed = 0.0;
 
         if(packet.throttle > 0.0)
-            throttleSpeed = packet.throttle * RC_MAX_SPEED_FORWARD;
+            throttleSpeed = packet.throttle * RC_MAX_SPEED_FORWARD; 
         else if(packet.throttle < 0.0)
             throttleSpeed = packet.throttle * RC_MAX_SPEED_REVERSE; 
 

@@ -23,6 +23,7 @@ namespace tritonai::gkc {
         void SetThrottleCmd(float cmd);
         void SetSteeringCmd(float cmd);
         void SetBrakeCmd(float cmd);
+        float GetSteeringAngleDeg();
         void FullRelRevCurrentBrake();
 
         float Clamp(float val, float max, float min) {

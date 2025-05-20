@@ -32,4 +32,8 @@ namespace tritonai::gkc {
         CommCanSetBrakePosition(cmd);
     }
 
+    float ActuationController::GetSteeringAngleDeg() {
+        return CommCanGetAngleDeg();
+    }
+
 } // namespace tritonai::gkc

@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
+#include <cmath>
 #include "mbed.h"
 #include "config.hpp"
 
@@ -33,16 +34,37 @@ namespace tritonai::gkc {
         delete cMsg;
     }
 
+    /**
+     * @brief Receives a CAN message with an extended ID
+     * @return true if message received and matched, false otherwise. Data is copied to 'outData'.
+     */
+    static bool CanReceiveEid(uint32_t id, uint8_t* outData, uint8_t& outLen) {
+        CANMessage cMsg;
+        // cMsg = new CANMessage(id, data, len, CANData, CANExtended);
+
+        if (can2.read(cMsg)) {
+            if (cMsg.id == id) {
+                // Process the message
+                outLen = cMsg.len;
+                memcpy(outData, cMsg.data, outLen);
+                return true; // Message received successfully
+            }
+        }
+        return false; // No message received or ID mismatch
+    }
+
     typedef enum {
         CAN_PACKET_SET_DUTY = 0,
         CAN_PACKET_SET_CURRENT,
         CAN_PACKET_SET_CURRENT_BRAKE,
         CAN_PACKET_SET_RPM,
         CAN_PACKET_SET_POS,
+        CAN_PACKET_STATUS = 9, // ERPM, Current, Duty Cycle
         CAN_PACKET_SET_CURRENT_REL = 10,
         CAN_PACKET_SET_CURRENT_BRAKE_REL,
         CAN_PACKET_SET_CURRENT_HANDBRAKE,
         CAN_PACKET_SET_CURRENT_HANDBRAKE_REL,
+        CAN_PACKET_STATUS_4 = 16, // Temp Fet, Temp Motor, Current In, PID position
         CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
     } CAN_PACKET_ID;
 
@@ -65,6 +87,31 @@ namespace tritonai::gkc {
 
     void BufferAppendFloat32(uint8_t* buffer, float number, float scale, int32_t* index) {
         BufferAppendInt32(buffer, (int32_t)(number * scale), index);
+    }
+
+    // Message request functions
+    inline void CommCanRequestStatus(uint8_t controllerId) {
+        uint8_t buffer[0] = {}; // No data
+        CanTransmitEid(controllerId | ((uint32_t)CAN_PACKET_STATUS << 8), buffer, 0);
+    }
+
+    inline void CommCanRequestStatus4(uint8_t controllerId) {
+        uint8_t buffer[0] = {}; // No data
+        CanTransmitEid(controllerId | ((uint32_t)CAN_PACKET_STATUS_4 << 8), buffer, 0);
+    }
+
+    // Message receiving functions
+    bool CommCanGetPos(uint8_t controllerId, float& pidPos) {
+        uint8_t data[8];
+        uint8_t len;
+        uint32_t expectedId = controllerId | ((uint32_t)CAN_PACKET_STATUS_4 << 8);
+
+        if (CanReceiveEid(expectedId, data, len) && len >= 8) {
+            int16_t posRaw = (data[6] << 8) | data[7];
+            pidPos = posRaw / 50.0f; // Convert to degrees
+            return true;
+        }
+        return false;
     }
 
     // Message sending functions
@@ -196,6 +243,18 @@ namespace tritonai::gkc {
         float motorAngle = steerAngle * 4.0 + MOTOR_OFFSET;
         float radToDeg = 180.0 / 3.14159265358979323846 * motorAngle;
         CommCanSetPos(STEER_CAN_ID, radToDeg);
+    }
+
+    float CommCanGetAngleDeg() {
+        // Request latest status from VESC
+        CommCanRequestStatus4(STEER_CAN_ID);
+        thread_sleep_for(10); // Wait for response (adjust as needed)
+
+        float angleDeg = 0.0f;
+        if (CommCanGetPos(STEER_CAN_ID, angleDeg)) {
+            return angleDeg;
+        }
+        return NAN; // Return NaN if no response
     }
 
     void CommCanSetBrakePosition(float brakePosition) {

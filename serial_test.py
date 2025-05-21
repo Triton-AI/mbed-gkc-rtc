@@ -374,6 +374,9 @@ def main():
         
         # Apply brake
         logger.info("Applying brake...")
+        controller.send_control(0.0, 0.0, 0.1)  # No throttle, neutral steering, 25% brake
+        time.sleep(1)  # Brake for 1 second
+
         controller.send_control(0.0, 0.0, 0.25)  # No throttle, neutral steering, 25% brake
         time.sleep(1)  # Brake for 1 second
 

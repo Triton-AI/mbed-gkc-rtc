@@ -275,7 +275,7 @@ namespace tritonai::gkc {
             return;
         }
 
-        SendLog(LogPacket::Severity::INFO, "ControlGkcPacket received: throttle: " + 
+        SendLog(LogPacket::Severity::DEBUG, "ControlGkcPacket received: throttle: " + 
                 std::to_string((int)(packet.throttle * 100)) + "%, " +
                 "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
                 "brake: " + std::to_string((int)(packet.brake * 100)) + "%");

@@ -36,7 +36,7 @@ namespace tritonai::gkc {
         // Initialize the last pulse count to current to prevent counting initial noise
         m_LastPulseCount = m_PulseCount;
         
-        m_Logger->SendLog(LogPacket::Severity::FATAL, 
+        m_Logger->SendLog(LogPacket::Severity::INFO, 
                         "Wheel speed sensor initialized on pin " + std::to_string(WHEEL_SPEED_SENSOR_PIN));
     }
 
@@ -78,7 +78,7 @@ namespace tritonai::gkc {
             if (pulseDelta == 0 && (currentTime - m_CurrentTimerValue/1000) > 500) {
                 // Log when speed drops to zero (only once)
                 if (m_CurrentSpeed > 0.0f) {
-                    m_Logger->SendLog(LogPacket::Severity::FATAL, "Vehicle stopped");
+                    m_Logger->SendLog(LogPacket::Severity::INFO, "Vehicle stopped");
                 }
                 m_CurrentSpeed = 0.0f;
             } 
@@ -101,7 +101,7 @@ namespace tritonai::gkc {
                 static int lastLoggedMeter = 0;
                 int currentMeter = static_cast<int>(m_TotalDistance);
                 if (currentMeter > lastLoggedMeter) {
-                    m_Logger->SendLog(LogPacket::Severity::FATAL, 
+                    m_Logger->SendLog(LogPacket::Severity::INFO, 
                                     "Distance traveled: " + std::to_string(currentMeter) + " meters");
                     lastLoggedMeter = currentMeter;
                 }
@@ -134,7 +134,7 @@ namespace tritonai::gkc {
         static uint32_t lastSpeedLog = 0;
         uint32_t currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(m_Timer.elapsed_time()).count();
         if (m_CurrentSpeed > 0.1f && (currentTime - lastSpeedLog > 1000)) {
-            m_Logger->SendLog(LogPacket::Severity::FATAL, 
+            m_Logger->SendLog(LogPacket::Severity::INFO, 
                         "Current wheel speed: " + std::to_string(m_CurrentSpeed) + " m/s, " +
                         "Distance: " + std::to_string(m_TotalDistance) + " m");
             lastSpeedLog = currentTime;

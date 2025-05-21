@@ -23,10 +23,12 @@ namespace tritonai::gkc {
         void SetThrottleCmd(float cmd);
         void SetSteeringCmd(float cmd);
         void SetBrakeCmd(float cmd);
-        float GetSteeringAngleDeg();
+        float GetSteeringAngle() const;
+        float GetCurrentSpeed() const;
         void FullRelRevCurrentBrake();
 
-        float Clamp(float val, float max, float min) {
+        template <typename T>
+        static T Clamp(const T& val, const T& max, const T& min) {
             if (val < min)
                 return min;
             else if (val > max)
@@ -35,6 +37,7 @@ namespace tritonai::gkc {
                 return val;
         }
 
+    private:
         ILogger* m_Logger;
     };
 

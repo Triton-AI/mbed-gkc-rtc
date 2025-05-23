@@ -86,16 +86,19 @@ namespace tritonai::gkc {
         GkcStateMachine::Initialize();
         
         while(true) {
-            ThisThread::sleep_for(std::chrono::milliseconds(100));
-
+            auto loopStart = std::chrono::steady_clock::now();
+            
+            // Toggle LED and send heartbeat
             m_Led = !m_Led;
             packet.rolling_counter++;
             packet.state = GetState();
             m_Comm.Send(packet);
             this->IncCount();
             
+            // Update tower lights
             UpdateLights();
             
+            // Log state changes
             switch(GetState()) {
             case GkcLifecycle::Uninitialized:
                 state = "Uninitialized";
@@ -120,6 +123,21 @@ namespace tritonai::gkc {
             if(state != oldState) {
                 oldState = state;
                 SendLog(LogPacket::Severity::WARNING, "Controller state: " + state);
+            }
+            
+            // Calculate timing and sleep
+            auto loopEnd = std::chrono::steady_clock::now();
+            auto loopDuration = std::chrono::duration_cast<std::chrono::milliseconds>(loopEnd - loopStart);
+            
+            auto sleepTime = std::chrono::milliseconds(100) - loopDuration;
+            if (sleepTime.count() > 0) {
+                ThisThread::sleep_for(sleepTime);
+            } else {
+                if (loopDuration.count() > 110) {
+                    SendLog(LogPacket::Severity::WARNING, 
+                            "Heartbeat loop took " + std::to_string(loopDuration.count()) + "ms (>100ms target)");
+                }
+                ThisThread::sleep_for(std::chrono::milliseconds(1));
             }
         }
     }
@@ -149,11 +167,12 @@ namespace tritonai::gkc {
         m_Actuation(this),
         m_RcController(this, this),
         m_BrakePressureSensor(this),
-        m_WheelSpeedSensor(this),
+        m_CanSensorProvider(this),
         m_RcHeartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat")
     {
         Attach(callback(this, &Controller::WatchdogCallback));
         m_KeepAliveThread.start(callback(this, &Controller::AgxHeartbeat));
+        m_SensorSendThread.start(callback(this, &Controller::SensorSendThreadImpl));
 
         // Add all objects to the watchlist
         m_Watchdog.AddToWatchlist(this);
@@ -167,7 +186,7 @@ namespace tritonai::gkc {
         }
 
         m_SensorReader.RegisterProvider(&m_BrakePressureSensor);
-        m_SensorReader.RegisterProvider(&m_WheelSpeedSensor); 
+        m_SensorReader.RegisterProvider(&m_CanSensorProvider);
 
         SendLog(LogPacket::Severity::INFO, "Controller initialized");
     }
@@ -389,9 +408,6 @@ namespace tritonai::gkc {
         m_Watchdog.Arm();
         SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE);
         
-        // Reset distance counter
-        m_WheelSpeedSensor.ResetDistance();
-        
         return StateTransitionResult::SUCCESS;
     }
 
@@ -428,10 +444,7 @@ namespace tritonai::gkc {
         m_ThrottleVescDisable = 0;
         m_SteeringVescDisable = 0;
         m_EmergencyActive = false;
-        
-        // Reset distance counter
-        m_WheelSpeedSensor.ResetDistance();
-        
+
         return StateTransitionResult::SUCCESS;
     }
 
@@ -446,6 +459,26 @@ namespace tritonai::gkc {
         m_Actuation.SetSteeringCmd(steering);
         m_Actuation.SetThrottleCmd(throttle);
         m_Actuation.SetBrakeCmd(brake);
+    }
+
+    void Controller::SensorSendThreadImpl() {
+        SendLog(LogPacket::Severity::INFO, "Sensor send thread started with " + 
+                std::to_string(SEND_SENSOR_INTERVAL_MS) + "ms interval");
+        
+        while(true) {
+            // Send sensor packet
+            const SensorGkcPacket& sensorPacket = m_SensorReader.GetPacket();
+            m_Comm.Send(sensorPacket);
+
+            // steering readings are currently incorrect
+            SendLog(LogPacket::Severity::DEBUG, 
+                    "Sensor packet - Steering: " + std::to_string(sensorPacket.values.steering_angle_rad) + 
+                    " rad, Speed: " + std::to_string(sensorPacket.values.wheel_speed_rl) + " m/s" +
+                    ", Brake Pressure: " + std::to_string(sensorPacket.values.brake_pressure) + " PSI");
+            
+            // Sleep for the configured sensor interval
+            ThisThread::sleep_for(std::chrono::milliseconds(SEND_SENSOR_INTERVAL_MS));
+        }
     }
 
 } // namespace tritonai::gkc

@@ -15,7 +15,7 @@
 #include "RCController/rc_controller.hpp"
 #include "StateMachine/state_machine.hpp"
 #include "Sensor/brake_pressure_sensor.hpp"
-#include "Sensor/wheel_speed_sensor.hpp"
+#include "Sensor/can_sensor_provider.hpp"
 #include <chrono>
 
 namespace tritonai::gkc {
@@ -71,9 +71,11 @@ namespace tritonai::gkc {
         ActuationController m_Actuation;
         RCController m_RcController;
         BrakePressureSensor m_BrakePressureSensor;
-        WheelSpeedSensor m_WheelSpeedSensor;
+        CanSensorProvider m_CanSensorProvider;
 
         Thread m_KeepAliveThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "keep_alive_thread"};
+        Thread m_SensorSendThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "sensor_send_thread"};
+        void SensorSendThreadImpl();
         bool m_RcCommanding{false};
         std::chrono::time_point<std::chrono::steady_clock> m_LastRcCommand = std::chrono::steady_clock::now();
         Watchable m_RcHeartbeat;

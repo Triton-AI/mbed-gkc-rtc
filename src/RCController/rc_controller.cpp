@@ -57,7 +57,7 @@ namespace tritonai::gkc {
     bool Translation::IsActive(int switch1, int switch2) {
         double switch1Norm = Normalize(switch1);
         double switch2Norm = Normalize(switch2);
-        
+
         // Both switches need to be in the active position (negative normalized value)
         return (switch1Norm < 0.0 && switch2Norm < 0.0);
     }
@@ -86,17 +86,6 @@ namespace tritonai::gkc {
             if (!m_Receiver.messageAvailable)
                 continue;
 
-            // std::cout << "Bus data: " << (int)(100*busData[0]) <<
-            //     " " << (int)(100*busData[1]) <<
-            //     " " << (int)(100*busData[2]) <<
-            //     " " << (int)(100*busData[3]) <<
-            //     " " << (int)(100*busData[4]) <<
-            //     " " << (int)(100*busData[5]) <<
-            //     " " << (int)(100*busData[6]) <<
-            //     " " << (int)(100*busData[7]) <<
-            //     " " << (int)(100*busData[8]) <<
-            //     std::endl;
-
             bool emergencyActive = Map.IsActive(
                 busData[ELRS_EMERGENCY_STOP_LEFT],
                 busData[ELRS_EMERGENCY_STOP_RIGHT]
@@ -122,9 +111,9 @@ namespace tritonai::gkc {
                 if (m_USBConnected) {
                     int8_t joystickX = static_cast<int8_t>(Map.Normalize(busData[ELRS_STEERING]) * 127.0);
                     int8_t joystickY = static_cast<int8_t>(Map.Normalize(busData[ELRS_THROTTLE]) * 127.0);
-                    
+
                     uint8_t joystickButtons = 0x00;
-                    
+
                     double triValue = Map.Normalize(busData[ELRS_TRI_SWITCH_LEFT]);
                     int selectedButton = 0;
                     if (triValue < -0.5)

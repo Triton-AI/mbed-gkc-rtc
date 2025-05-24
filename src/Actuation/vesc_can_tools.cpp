@@ -12,7 +12,7 @@ namespace tritonai::gkc {
 
     CAN can1(CAN1_RX, CAN1_TX, CAN1_BAUDRATE);
     CAN can2(CAN2_RX, CAN2_TX, CAN2_BAUDRATE);
-    
+
     static float g_LastSteeringAngle = 0.0f;
     static bool g_SteeringAngleReceived = false;
     static Mutex g_SteeringAngleMutex;
@@ -53,16 +53,18 @@ namespace tritonai::gkc {
 
             // Convert motor angle in degrees to radians
             int16_t posRaw = (msg.data[6] << 8) | msg.data[7];
-            float angleDeg = std::abs((posRaw / 50.0f) - 360.0);
-            float angleRad = angleDeg * (M_PI / 180.0);
-            
-            // Reverse the conversion done in CommCanSetAngle()
+            float positionDeg = (posRaw / 50.0f);
+
+            // Were given PID Position, which seems to be 360 - encoder angle
+            float angleDeg = (360.0f - positionDeg);
+
+            // Normalize to [-180, +180]
+            while (angleDeg > 180.0f) angleDeg -= 360.0f;
+            while (angleDeg < -180.0f) angleDeg += 360.0f;
+
+            float angleRad = angleDeg * (M_PI / 180.0f);
             float steerAngleRad = (angleRad - MOTOR_OFFSET) / 4.0f;
 
-            if (steerAngleRad > 1.0f) {
-                steerAngleRad = 2.0f - steerAngleRad;
-            }
-            
             g_SteeringAngleMutex.lock();
             g_LastSteeringAngle = steerAngleRad;
             g_SteeringAngleReceived = true;
@@ -73,10 +75,10 @@ namespace tritonai::gkc {
         else if (msg.id == (THROTTLE_CAN_ID | ((uint32_t)CAN_PACKET_ID::CAN_PACKET_STATUS << 8)) && msg.len >= 6) {
             // Extract ERPM from the first 4 bytes
             int32_t erpm = (msg.data[0] << 24) | (msg.data[1] << 16) | (msg.data[2] << 8) | msg.data[3];
-            
+
             // Calculate actual speed in m/s
             float speedMs = (erpm * WHEEL_CIRCUMFERENCE_M) / (NUM_MOTOR_POLES * GEAR_RATIO * 60.0);
-            
+
             g_ErpmMutex.lock();
             g_ThrottleErpm = erpm;
             g_CalculatedSpeed = speedMs;
@@ -106,7 +108,7 @@ namespace tritonai::gkc {
                                 "can_recv_thread");
         canThread.start(callback(CanRecvLoop));
     }
-    
+
     void BufferAppendInt16(uint8_t* buffer, int16_t number, int32_t* index) {
         buffer[(*index)++] = number >> 8;
         buffer[(*index)++] = number;
@@ -277,7 +279,7 @@ namespace tritonai::gkc {
     void CommCanSetBrakePosition(float brakePosition) {
         brakePosition = Clamp(brakePosition, 0.0f, 1.0f);
         unsigned int pos = (unsigned int)(brakePosition * (MAX_BRAKE_VAL - MIN_BRAKE_VAL)) + MIN_BRAKE_VAL;
-        
+
         static unsigned char buffer[8] = {0x0F, 0x4A, 0x00, 0xC0, 0, 0, 0, 0};
         buffer[2] = pos & 0xFF;
         buffer[3] = 0xC0 | ((pos >> 8) & 0x1F);

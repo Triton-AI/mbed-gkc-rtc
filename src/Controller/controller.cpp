@@ -18,34 +18,34 @@ namespace tritonai::gkc {
     void Controller::UpdateLights() {
         auto now = chrono::steady_clock::now();
         auto elapsed = chrono::duration_cast<chrono::milliseconds>(now - m_LastLightToggle).count();
-        
+
         // Flash at 1Hz (toggle every 500ms)
         if (elapsed >= 500) {
             m_LightState = !m_LightState;
             m_LastLightToggle = now;
         }
-        
+
         // Turn off all lights first
         m_TowerLightRed = 0;
         m_TowerLightYellow = 0;
         m_TowerLightGreen = 0;
-        
+
         // Emergency state takes precedence - flash red at 1Hz
         if (m_EmergencyActive) {
             m_TowerLightRed = m_LightState;
             return;
         }
-        
+
         // If RC is not connected, flash yellow at 1Hz
         if (!m_RcConnected) {
             m_TowerLightYellow = m_LightState;
             return;
         }
-        
+
         // Check for controller passthrough mode
         bool passthroughMode = (m_CurrentAutonomyMode == AUTONOMOUS && 
                                 m_RcController.GetIndicatorState());
-        
+
         // Check USB connection when in passthrough mode
         if (passthroughMode) {
             if (m_RcController.IsUSBConnected()) {
@@ -59,7 +59,7 @@ namespace tritonai::gkc {
             }
             return;
         }
-        
+
         // If RC is connected, set lights based on autonomy mode
         switch (m_CurrentAutonomyMode) {
         case AUTONOMOUS:
@@ -84,20 +84,19 @@ namespace tritonai::gkc {
 
         //TODO: (Moises) TEMP
         GkcStateMachine::Initialize();
-        
+
         while(true) {
             auto loopStart = std::chrono::steady_clock::now();
-            
+
             // Toggle LED and send heartbeat
             m_Led = !m_Led;
             packet.rolling_counter++;
             packet.state = GetState();
             m_Comm.Send(packet);
             this->IncCount();
-            
-            // Update tower lights
+
             UpdateLights();
-            
+
             // Log state changes
             switch(GetState()) {
             case GkcLifecycle::Uninitialized:
@@ -124,11 +123,10 @@ namespace tritonai::gkc {
                 oldState = state;
                 SendLog(LogPacket::Severity::WARNING, "Controller state: " + state);
             }
-            
+
             // Calculate timing and sleep
             auto loopEnd = std::chrono::steady_clock::now();
             auto loopDuration = std::chrono::duration_cast<std::chrono::milliseconds>(loopEnd - loopStart);
-            
             auto sleepTime = std::chrono::milliseconds(100) - loopDuration;
             if (sleepTime.count() > 0) {
                 ThisThread::sleep_for(sleepTime);
@@ -144,8 +142,8 @@ namespace tritonai::gkc {
 
     void Controller::OnRcDisconnect() {
         SendLog(LogPacket::Severity::INFO, "Controller heartbeat lost");
-        m_RcConnected = false; // Mark RC as disconnected for the light system
-        
+        m_RcConnected = false;
+
         if(GetState() != GkcLifecycle::Active) {
             SendLog(LogPacket::Severity::INFO, "Controller is not active, ignoring RC controller heartbeat lost");
             return;
@@ -179,7 +177,7 @@ namespace tritonai::gkc {
         m_Watchdog.AddToWatchlist(&m_Comm);
         m_Watchdog.AddToWatchlist(&m_SensorReader);
         m_Watchdog.AddToWatchlist(&m_RcController);
-        
+
         if(m_StopOnRcDisconnect) {
             m_RcHeartbeat.Attach(callback(this, &Controller::OnRcDisconnect));
             m_Watchdog.AddToWatchlist(&m_RcHeartbeat);
@@ -281,7 +279,7 @@ namespace tritonai::gkc {
         }
     }
 
-      // TODO: Implement the control packet callback, partially done
+    // TODO: Implement the control packet callback, partially done
     void Controller::packet_callback(const ControlGkcPacket& packet) {
         SendLog(LogPacket::Severity::INFO, "ControlGkcPacket received");
         if(GetState() != GkcLifecycle::Active) {
@@ -298,7 +296,7 @@ namespace tritonai::gkc {
                 std::to_string((int)(packet.throttle * 100)) + "%, " +
                 "steering: " + std::to_string((int)(packet.steering * 100)) + "%, " +
                 "brake: " + std::to_string((int)(packet.brake * 100)) + "%");
-        
+
         SetActuationValues(packet.throttle, packet.steering, packet.brake);
     }
 
@@ -328,10 +326,10 @@ namespace tritonai::gkc {
     void Controller::packet_callback(const RCControlGkcPacket& packet) {
         m_RcHeartbeat.IncCount();
         m_RcConnected = true;
-        
+
         // Update light tower state based on emergency stop status
         m_EmergencyActive = !packet.is_active;
-        
+
         // Update autonomy mode for light system
         m_CurrentAutonomyMode = packet.autonomy_mode;
 
@@ -407,7 +405,7 @@ namespace tritonai::gkc {
         SendLog(LogPacket::Severity::INFO, "Controller initializing");
         m_Watchdog.Arm();
         SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE);
-        
+
         return StateTransitionResult::SUCCESS;
     }
 
@@ -456,6 +454,7 @@ namespace tritonai::gkc {
             m_Actuation.SetSteeringCmd(0.0);
             return;
         }
+
         m_Actuation.SetSteeringCmd(steering);
         m_Actuation.SetThrottleCmd(throttle);
         m_Actuation.SetBrakeCmd(brake);
@@ -464,19 +463,16 @@ namespace tritonai::gkc {
     void Controller::SensorSendThreadImpl() {
         SendLog(LogPacket::Severity::INFO, "Sensor send thread started with " + 
                 std::to_string(SEND_SENSOR_INTERVAL_MS) + "ms interval");
-        
+
         while(true) {
-            // Send sensor packet
             const SensorGkcPacket& sensorPacket = m_SensorReader.GetPacket();
             m_Comm.Send(sensorPacket);
 
-            // steering readings are currently incorrect
             SendLog(LogPacket::Severity::DEBUG, 
                     "Sensor packet - Steering: " + std::to_string(sensorPacket.values.steering_angle_rad) + 
                     " rad, Speed: " + std::to_string(sensorPacket.values.wheel_speed_rl) + " m/s" +
                     ", Brake Pressure: " + std::to_string(sensorPacket.values.brake_pressure) + " PSI");
-            
-            // Sleep for the configured sensor interval
+
             ThisThread::sleep_for(std::chrono::milliseconds(SEND_SENSOR_INTERVAL_MS));
         }
     }

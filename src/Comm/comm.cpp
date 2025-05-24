@@ -54,7 +54,7 @@ namespace tritonai::gkc {
     void CommManager::RecvCallback() {
         static auto buffer = GkcBuffer(RECV_BUFFER_SIZE, 0);
         static auto waitTime = std::chrono::milliseconds(WAIT_READ_MS);
-        
+
         while (!ThisThread::flags_get()) {
             IncCount();
             if (m_UartSerial->readable()) {
@@ -64,14 +64,6 @@ namespace tritonai::gkc {
                     buff.data = buffer.data();
                     buff.size = numByteRead;
 
-                    // std::cout << "Got something of size " << num_byte_read << "\n";
-                    // cout << "Data: ";
-
-                    // for (int i = 0; i < num_byte_read; i++) {
-                    //   cout << hex << static_cast<int>(buffer[i]) << " ";
-                    // }
-
-                    // cout << endl;
                     m_Factory->Receive(buff);
                 }
             }

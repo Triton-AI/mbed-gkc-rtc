@@ -32,7 +32,7 @@ namespace tritonai::gkc {
 
     protected:
         ILogger* m_Logger;
-        
+
         std::unique_ptr<GkcPacketFactory> m_Factory;
         Queue<GkcBuffer, SEND_QUEUE_SIZE> m_SendQueue;
         std::queue<std::shared_ptr<GkcBuffer>> m_SendQueueData;

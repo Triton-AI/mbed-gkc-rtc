@@ -31,7 +31,7 @@
 #define RECV_BUFFER_SIZE               32      // inbound packet buffer
 #define WAIT_READ_MS                   5       // ms between reads
 #define SEND_QUEUE_SIZE                10      // outbound packet queue depth
-#define SEND_SENSOR_INTERVAL_MS        50      // sensor packet send interval
+#define SEND_SENSOR_INTERVAL_MS        20      // sensor packet send interval
 
 // Tower light indicators
 #define TOWER_LIGHT_RED                PD_15
@@ -93,8 +93,8 @@
 #define BRAKE_CAN_ID                0x00FF0000
 
 // Throttle speed limits (m/s)
-#define THROTTLE_MAX_FORWARD_SPEED  5.0f
-#define THROTTLE_MAX_REVERSE_SPEED  5.0f
+#define THROTTLE_MAX_FORWARD_SPEED  20.0f
+#define THROTTLE_MAX_REVERSE_SPEED  20.0f
 
 // RC override speed limits
 #define RC_MAX_SPEED_FORWARD        5.0f
@@ -108,12 +108,9 @@
 // Brake pressure sensor
 #define BRAKE_PRESSURE_SENSOR_PIN   PA_0
 
-// Wheel speed sensor & VESC control
-#define WHEEL_SPEED_SENSOR_PIN      PE_14
+// Wheel speed & VESC control
 #define WHEEL_DIAMETER_M            0.254f
 #define WHEEL_CIRCUMFERENCE_M       (WHEEL_DIAMETER_M * M_PI)
-#define SPEED_SAMPLE_PERIOD_MS      50
-#define PULSES_PER_REVOLUTION       52
 #define NUM_MOTOR_POLES             5.0
 #define GEAR_RATIO                  59.0/22.0
 
@@ -128,8 +125,8 @@
     {1.74532f,  0.453785f}, \
     {1.91986f,  0.506145f}  \
 }
-#define MIN_WHEEL_STEER_DEG         -20
-#define MAX_WHEEL_STEER_DEG         20
+#define MIN_WHEEL_STEER_DEG         -15
+#define MAX_WHEEL_STEER_DEG         15
 #define MOTOR_OFFSET                0.3f
 
 // ELRS radio channel mapping
@@ -155,5 +152,8 @@
 // #define DEFAULT_MCU_HEARTBEAT_LOST_TOLERANCE_MS 2000
 // #define DEFAULT_CTL_CMD_INTERVAL_MS 10
 // #define DEFAULT_CTL_CMD_LOST_TOLERANCE_MS 200
+// #define WHEEL_SPEED_SENSOR_PIN      PE_14
+// #define SPEED_SAMPLE_PERIOD_MS      50
+// #define PULSES_PER_REVOLUTION       52
 
 // TODO: implement Ethernet/CAN, PC/MCU heartbeat, control timeout, actuation intervals, steering PID etc.

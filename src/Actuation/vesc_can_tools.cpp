@@ -63,7 +63,8 @@ namespace tritonai::gkc {
             while (angleDeg < -180.0f) angleDeg += 360.0f;
 
             float angleRad = angleDeg * (M_PI / 180.0f);
-            float steerAngleRad = (angleRad - MOTOR_OFFSET) / 4.0f;
+            float steerAngleRad = (angleRad - ENCODER_OFFSET) / STEERING_RATIO;
+            // float steerAngleRad = angleRad;
 
             g_SteeringAngleMutex.lock();
             g_LastSteeringAngle = steerAngleRad;
@@ -257,7 +258,7 @@ namespace tritonai::gkc {
     }
 
     void CommCanSetAngle(float steerAngle) {
-        float motorAngle = steerAngle * 4.0 + MOTOR_OFFSET;
+        float motorAngle = steerAngle * STEERING_RATIO + ENCODER_OFFSET;
         float radToDeg = 180.0 / M_PI * motorAngle;
         CommCanSetPos(STEER_CAN_ID, radToDeg);
     }

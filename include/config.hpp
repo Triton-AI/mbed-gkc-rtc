@@ -127,7 +127,8 @@
 }
 #define MIN_WHEEL_STEER_DEG         -15
 #define MAX_WHEEL_STEER_DEG         15
-#define MOTOR_OFFSET                0.3f
+#define ENCODER_OFFSET              0.3f
+#define STEERING_RATIO              4.0f // for steering to encoder angle in radians
 
 // ELRS radio channel mapping
 #define ELRS_THROTTLE               1

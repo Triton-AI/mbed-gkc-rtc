@@ -29,6 +29,10 @@ namespace tritonai::gkc {
 
     void ActuationController::SetSteeringCmd(float cmd) {
         CommCanSetAngle(cmd);
+        // Log the command for steering PID tuning
+        // float motorAngle = cmd * STEERING_RATIO + ENCODER_OFFSET;
+        // float radToDeg = 180.0 / M_PI * motorAngle;
+        // m_Logger->SendLog(LogPacket::Severity::FATAL, "Set steering command: " + std::to_string(radToDeg) + "Deg");
     }
 
     void ActuationController::SetBrakeCmd(float cmd) {

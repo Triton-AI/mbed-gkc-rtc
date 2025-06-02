@@ -64,7 +64,7 @@ namespace tritonai::gkc {
 
             float angleRad = angleDeg * (M_PI / 180.0f);
             float steerAngleRad = (angleRad - ENCODER_OFFSET) / STEERING_RATIO;
-            // float steerAngleRad = angleRad;
+            // float steerAngleRad = angleDeg; // for PID tuning, we use the raw angle directly
 
             g_SteeringAngleMutex.lock();
             g_LastSteeringAngle = steerAngleRad;

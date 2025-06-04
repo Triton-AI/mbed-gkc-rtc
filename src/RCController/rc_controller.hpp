@@ -10,13 +10,15 @@
 #include "config.hpp"
 #include "math.h"
 #include "elrs_receiver.hpp"
-#include "USBJoystick/usb_joystick.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 #include "Watchdog/watchable.hpp"
 #include "Tools/logger.hpp"
 #include <Thread.h>
 
+#ifdef ENABLE_USB_PASSTHROUGH
+#include "USBJoystick/usb_joystick.hpp"
 extern bool g_PassthroughEnabled;
+#endif
 
 namespace tritonai::gkc {
 
@@ -46,8 +48,10 @@ namespace tritonai::gkc {
             return m_Packet;
         }
         
+#ifdef ENABLE_USB_PASSTHROUGH
         bool GetIndicatorState() const;
         bool IsUSBConnected() const { return m_USBConnected; }
+#endif
         
     protected:
         void Update();
@@ -60,11 +64,15 @@ namespace tritonai::gkc {
         RCControlGkcPacket m_Packet{};
         GkcPacketSubscriber* m_Sub;
         ILogger* m_Logger;
+#ifdef ENABLE_USB_PASSTHROUGH
         USBJoystick m_Joystick;
+#endif
         bool m_IsReady;
         float m_CurrentThrottle = 0.0;
+#ifdef ENABLE_USB_PASSTHROUGH
         bool m_IndicatorState;
         bool m_USBConnected{false};
+#endif
     };
 
 } // namespace tritonai::gkc

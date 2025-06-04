@@ -11,8 +11,8 @@
 // Build Options
 // ============================================================================
 
-// (Currently none, previously serial over usb was an option)
-
+// USB Passthrough Feature - Comment out to disable USB joystick passthrough
+// #define ENABLE_USB_PASSTHROUGH
 
 // ============================================================================
 // Communication Interfaces

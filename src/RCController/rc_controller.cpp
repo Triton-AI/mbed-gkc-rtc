@@ -101,6 +101,7 @@ namespace tritonai::gkc {
                 continue;
             }
 
+#ifdef ENABLE_USB_PASSTHROUGH
             // Use board button for passthrough mode instead of RC button
             bool passthroughEnabled = (m_Packet.autonomy_mode == AUTONOMOUS && g_PassthroughEnabled);
             m_IndicatorState = passthroughEnabled;
@@ -136,6 +137,7 @@ namespace tritonai::gkc {
             } else {
                 m_USBConnected = false;
             }
+#endif
 
             bool isAllZero = (std::abs(100 * Map.Normalize(busData[ELRS_THROTTLE])) <= 5 &&
                             std::abs(100 * Map.Normalize(busData[ELRS_STEERING])) <= 5);
@@ -168,9 +170,13 @@ namespace tritonai::gkc {
         m_Packet{},
         m_Sub(sub),
         m_Logger(logger),
+#ifdef ENABLE_USB_PASSTHROUGH
         m_Joystick(true),
-        m_IsReady(false),
-        m_IndicatorState(false)
+#endif
+        m_IsReady(false)
+#ifdef ENABLE_USB_PASSTHROUGH
+        , m_IndicatorState(false)
+#endif
     {
         m_RCThread.start(callback(this, &RCController::Update));
         Attach(callback(this, &RCController::WatchdogCallback));
@@ -181,8 +187,10 @@ namespace tritonai::gkc {
         NVIC_SystemReset();
     }
 
+#ifdef ENABLE_USB_PASSTHROUGH
     bool RCController::GetIndicatorState() const {
         return m_IndicatorState;
     }
+#endif
 
 } // namespace tritonai::gkc

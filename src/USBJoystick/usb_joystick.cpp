@@ -5,6 +5,10 @@
  * @copyright Copyright 2025 Triton AI
  */
 
+#include "config.hpp"
+
+#ifdef ENABLE_USB_PASSTHROUGH
+
 #include "usb_joystick.hpp"
 #include <cstring>
 
@@ -103,3 +107,5 @@ namespace tritonai::gkc {
     }
 
 } // namespace tritonai::gkc
+
+#endif // ENABLE_USB_PASSTHROUGH

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "config.hpp"
 #include "Comm/comm.hpp"
 #include "tai_gokart_packet/gkc_packet_subscriber.hpp"
 #include "Watchdog/watchdog.hpp"

@@ -42,6 +42,7 @@ namespace tritonai::gkc {
             return;
         }
 
+#ifdef ENABLE_USB_PASSTHROUGH
         // Check for controller passthrough mode
         bool passthroughMode = (m_CurrentAutonomyMode == AUTONOMOUS && 
                                 m_RcController.GetIndicatorState());
@@ -59,6 +60,7 @@ namespace tritonai::gkc {
             }
             return;
         }
+#endif
 
         // If RC is connected, set lights based on autonomy mode
         switch (m_CurrentAutonomyMode) {

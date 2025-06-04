@@ -1,18 +1,8 @@
 /**
  * @file sensor_reader.cpp
- * @author Haoru Xue (haoru.xue@autoware.org)
- * @brief
- * @version 0.1
- * @date 2022-04-03
- *
- * @copyright Copyright 2022 Triton AI
- *
- * This CPP file defines the funcionality of
- * the SensorReader class from Sensor_reader.hpp.
- * This class "polls" or takes in data from various sensors and updates
- * the sensorGkcPacket object. The register_provider() function adds a sensor
- * while removeProvider() will remove a sensor from the list of readings.
- * This file is a way to read sensor data form multiple sources at a regular interval
+ * @brief Implementation of sensor reading functionality
+ * 
+ * @copyright Copyright 2025 Triton AI
  */
 
 #include "sensor_reader.hpp"
@@ -22,51 +12,48 @@
 #include <cstdio>
 #include <string>
 
-namespace tritonai {
-namespace gkc {
-SensorReader::SensorReader()
-    : Watchable(DEFAULT_SENSOR_POLL_INTERVAL_MS,
-                DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS,
-                "SensorReader") {
-  // std::cout << "Initializing sensor" << std::endl;
-  sensor_poll_thread.start(
-      callback(this, &SensorReader::sensor_poll_thread_impl));
-  // std::cout << "Sensor initialized" << std::endl;
-  attach(callback(this, &SensorReader::watchdog_callback));
-}
+namespace tritonai::gkc {
 
-void SensorReader::sensor_poll_thread_impl() {
-  while (!ThisThread::flags_get()) {
-    providers_lock_.lock();
-    for (auto &provider : providers_) {
-      if (provider->is_ready()) {
-        provider->populate_reading(pkt_);
-      }
+    SensorReader::SensorReader(ILogger* logger)
+        : Watchable(DEFAULT_SENSOR_POLL_INTERVAL_MS,
+                    DEFAULT_SENSOR_POLL_LOST_TOLERANCE_MS,
+                    "SensorReader"),
+        m_Logger(logger) {
+        m_SensorPollThread.start(callback(this, &SensorReader::SensorPollThreadImpl));
+        m_Logger->SendLog(LogPacket::Severity::INFO, "SensorReader initialized");
+        Attach(callback(this, &SensorReader::WatchdogCallback));
     }
-    providers_lock_.unlock();
-    //Waits for a time specified by poll_interval
-    this->inc_count(); // Increments the count of the watchdog
-    ThisThread::sleep_for(poll_interval_);
-  }
-}
 
-void SensorReader::register_provider(ISensorProvider *provider) {
-  providers_lock_.lock();
-  providers_.push_back(provider);
-  providers_lock_.unlock();
-}
+    void SensorReader::SensorPollThreadImpl() {
+        while (!ThisThread::flags_get()) {
+            m_ProvidersLock.lock();
+            for (auto& provider : m_Providers) {
+                if (provider->IsReady()) {
+                    provider->PopulateReading(m_Packet);
+                }
+            }
+            m_ProvidersLock.unlock();
+            this->IncCount(); // Increments the count of the watchdog
+            ThisThread::sleep_for(m_PollInterval);
+        }
+    }
 
-void SensorReader::remove_provider(ISensorProvider *provider) {
-  providers_lock_.lock();
-  providers_.erase(std::remove(providers_.begin(), providers_.end(), provider),
-                   providers_.end());
-  providers_lock_.unlock();
-}
+    void SensorReader::RegisterProvider(ISensorProvider* provider) {
+        m_ProvidersLock.lock();
+        m_Providers.push_back(provider);
+        m_ProvidersLock.unlock();
+    }
 
-void SensorReader::watchdog_callback() {
-  std::cout << "SensorReader Timeout detected" << std::endl;
-  NVIC_SystemReset();
-}
+    void SensorReader::RemoveProvider(ISensorProvider* provider) {
+        m_ProvidersLock.lock();
+        m_Providers.erase(std::remove(m_Providers.begin(), m_Providers.end(), provider),
+                        m_Providers.end());
+        m_ProvidersLock.unlock();
+    }
 
-} // namespace gkc
-} // namespace tritonai
+    void SensorReader::WatchdogCallback() {
+        m_Logger->SendLog(LogPacket::Severity::FATAL, "SensorReader Timeout detected");
+        NVIC_SystemReset();
+    }
+
+} // namespace tritonai::gkc

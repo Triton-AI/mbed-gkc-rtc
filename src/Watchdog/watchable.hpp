@@ -1,49 +1,52 @@
-#ifndef WATCHABLE_HPP_
-#define WATCHABLE_HPP_
+/**
+ * @file watchable.hpp
+ * @brief Interface for components that can be monitored by the watchdog
+ */
+
+#pragma once
 
 #include <stdint.h>
 #include <iostream>
 #include <string>
 #include "mbed.h"
 
-namespace tritonai {
-namespace gkc {
+namespace tritonai::gkc {
+
 class Watchable {
 public:
-  Watchable(uint32_t update_interval_ms, uint32_t max_inactivity_limit_ms, std::string name)
-      : update_interval_ms(update_interval_ms),
-        max_inactivity_limit_ms(max_inactivity_limit_ms),
-        name(name) {}
+    Watchable(uint32_t updateIntervalMs, uint32_t maxInactivityLimitMs, std::string name)
+        : m_UpdateIntervalMs(updateIntervalMs),
+        m_MaxInactivityLimitMs(maxInactivityLimitMs),
+        m_Name(name) {}
 
-  void activate() { active = true; }
-  void deactivate() { active = false; }
-  void inc_count() { ++rolling_counter; }
-  uint32_t get_update_interval() { return update_interval_ms; }
-  void set_update_interval(const uint32_t &update_interval_ms) {
-    this->update_interval_ms = update_interval_ms;
-  }
-  bool is_activated() { return active; }
-  uint32_t get_max_inactivity_limit_ms() { return max_inactivity_limit_ms; }
-  virtual bool check_activity() {
-    bool activity = last_check_rolling_counter_val != rolling_counter;
-    last_check_rolling_counter_val = rolling_counter;
-    return activity;
-  }
-  void attach(Callback<void ()> func) { callback_func_ = func; }
-  void watchdog_trigger() { callback_func_(); }
-  std::string get_name() { return name; }
+    void Activate() { m_Active = true; }
+    void Deactivate() { m_Active = false; }
+    void IncCount() { ++m_RollingCounter; }
+    uint32_t GetUpdateInterval() { return m_UpdateIntervalMs; }
+    void SetUpdateInterval(const uint32_t& updateIntervalMs) {
+        this->m_UpdateIntervalMs = updateIntervalMs;
+    }
+    bool IsActivated() { return m_Active; }
+    uint32_t GetMaxInactivityLimitMs() { return m_MaxInactivityLimitMs; }
+    virtual bool CheckActivity() {
+        bool activity = m_LastCheckRollingCounterVal != m_RollingCounter;
+        m_LastCheckRollingCounterVal = m_RollingCounter;
+        return activity;
+    }
+    void Attach(Callback<void()> func) { m_CallbackFunc = func; }
+    void WatchdogTrigger() { m_CallbackFunc(); }
+    std::string GetName() { return m_Name; }
 
 protected:
-  bool active = false;
-  uint32_t rolling_counter = 0;
-  uint32_t update_interval_ms = 0;
-  uint32_t max_inactivity_limit_ms = 0;
-  Callback<void ()> callback_func_;
+    bool m_Active = false;
+    uint32_t m_RollingCounter = 0;
+    uint32_t m_UpdateIntervalMs = 0;
+    uint32_t m_MaxInactivityLimitMs = 0;
+    Callback<void()> m_CallbackFunc;
+    
 private:
-  uint32_t last_check_rolling_counter_val = 0;
-  std::string name;
+    uint32_t m_LastCheckRollingCounterVal = 0;
+    std::string m_Name;
 };
-} // namespace gkc
-} // namespace tritonai
 
-#endif // WATCHABLE_HPP_
+} // namespace tritonai::gkc

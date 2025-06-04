@@ -1,16 +1,11 @@
 /**
  * @file comm.hpp
- * @author Haoru Xue (haoru.xue@autoware.org)
- * @brief
- * @version 0.1
- * @date 2022-02-10
- *
- * @copyright Copyright 2022 Triton AI
- *
+ * @brief Communication manager for packet-based messaging
+ * 
+ * @copyright Copyright 2025 Triton AI
  */
 
-#ifndef COMM_HPP_
-#define COMM_HPP_
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -18,45 +13,38 @@
 #include <queue>
 
 #include "BufferedSerial.h"
-#include "USBSerial.h"
 #include "mbed.h"
 
 #include "config.hpp"
 #include "Watchdog/watchable.hpp"
+#include "Tools/logger.hpp"
 
 #include "tai_gokart_packet/gkc_packet_factory.hpp"
 #include "tai_gokart_packet/gkc_packet_utils.hpp"
 #include "tai_gokart_packet/gkc_packets.hpp"
 
-// Choose a comm interface in config.hpp
+namespace tritonai::gkc {
 
-namespace tritonai {
-namespace gkc {
-class CommManager : public Watchable {
-public:
-  explicit CommManager(GkcPacketSubscriber *sub);
-  void send(const GkcPacket &packet);
+    class CommManager : public Watchable {
+    public:
+        explicit CommManager(GkcPacketSubscriber* sub, ILogger* logger);
+        void Send(const GkcPacket& packet);
 
-protected:
-  std::unique_ptr<GkcPacketFactory> factory_;
-  Queue<GkcBuffer, SEND_QUEUE_SIZE> send_queue_;
-  std::queue<std::shared_ptr<GkcBuffer>> send_queue_data_;
-  Thread send_thread{osPriorityNormal, OS_STACK_SIZE, nullptr, "send_thread"};
-#ifdef COMM_USB_SERIAL
-  std::unique_ptr<USBSerial> usb_serial_;
-#endif
+    protected:
+        ILogger* m_Logger;
 
-#ifdef COMM_UART_SERIAL
-  std::unique_ptr<BufferedSerial> uart_serial_;
-  Thread uart_serial_thread_{osPriorityNormal, OS_STACK_SIZE, nullptr, "uart_serial_thread"};
-#endif
+        std::unique_ptr<GkcPacketFactory> m_Factory;
+        Queue<GkcBuffer, SEND_QUEUE_SIZE> m_SendQueue;
+        std::queue<std::shared_ptr<GkcBuffer>> m_SendQueueData;
+        Thread m_SendThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "send_thread"};
 
-  void recv_callback();
-  void watchdog_callback();
-  void send_thread_impl();
-  size_t send_impl(const GkcBuffer &buffer);
-};
-} // namespace gkc
-} // namespace tritonai
+        std::unique_ptr<BufferedSerial> m_UartSerial;
+        Thread m_UartSerialThread{osPriorityNormal, OS_STACK_SIZE, nullptr, "uart_serial_thread"};
 
-#endif // COMM_HPP_
+        void RecvCallback();
+        void WatchdogCallback();
+        void SendThreadImpl();
+        size_t SendImpl(const GkcBuffer& buffer);
+    };
+
+} // namespace tritonai::gkc

@@ -20,8 +20,6 @@ bool elrc_receiver::gatherData(){
     void* channelsPointer = (void*)(&structuredChannel);
     messageAvailable = false;
 
-    int messageBufferRequest = messageSize*2+6;
-
     bool hasRead = serial_port.read(payload,256);
     if(!hasRead)return messageAvailable;
     // printf("%x %x %x ", payload[0], payload[1], payload[2]);

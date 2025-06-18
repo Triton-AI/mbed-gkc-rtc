@@ -367,17 +367,15 @@ python serial_test.py --port /dev/ttyUSB0 --speed 3.0 --duration 30
 - **USB passthrough stability**: Fix disconnection issues with onboard computer
 
 ### Performance Improvements
-- **PID steering control**: Implement closed-loop steering with encoder feedback
+- **PID steering control**: Continue monitoring PID steering and update
 - **Brake pressure feedback**: Add pressure sensor feedback loop for precise braking
 - **ABS implementation**: Anti-lock braking using accelerometer feedback
-- **Predictive control**: Implement model-predictive control for smoother operation
 
 ### Code Quality & Architecture
 - **Smart pointers**: Replace raw pointers with std::unique_ptr/shared_ptr
 - **RAII lifecycle**: Implement proper system start/run/stop lifecycle
-- **Thread-safe logging**: Eliminate potential race conditions in logging system
+- **Thread-safe logging**: Eliminate potential race conditions in logging system (Faster baud rate makes this possible)
 - **Profiler validation**: Complete testing and validation of performance profiling system
-- **Unit testing**: Add comprehensive unit test suite for critical components
 
 ### Additional Features
 - **Telemetry system**: Real-time data streaming to ground station

@@ -20,6 +20,9 @@ namespace tritonai::gkc {
 
     void ActuationController::SetThrottleCmd(float cmd) {
         cmd = ActuationController::Clamp(cmd, THROTTLE_MAX_FORWARD_SPEED, -1.0f*THROTTLE_MAX_REVERSE_SPEED);
+        // float wheelRpm = cmd / WHEEL_CIRCUMFERENCE_M * 60.0;
+        // float speedToErpm = cmd * NUM_MOTOR_POLES * GEAR_RATIO / WHEEL_CIRCUMFERENCE_M * 60.0;
+        // m_Logger->SendLog(LogPacket::Severity::DEBUG, "Setting throttle command: " + std::to_string(cmd) + " m/s, Wheel RPM: " + std::to_string(wheelRpm) + ", ERPM: " + std::to_string(speedToErpm));
         CommCanSetSpeed(cmd);
     }
 

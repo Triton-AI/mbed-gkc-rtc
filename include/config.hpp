@@ -34,9 +34,9 @@
 #define SEND_SENSOR_INTERVAL_MS        20      // sensor packet send interval
 
 // Tower light indicators
-#define TOWER_LIGHT_RED                PD_15 //(wiring) relay switch "lights"
-#define TOWER_LIGHT_YELLOW             PD_11 //(wiring) relay switch "lights"
-#define TOWER_LIGHT_GREEN              PE_12 //(wiring) relay switch "lights"
+#define TOWER_LIGHT_RED                PD_15   // J25 DIO (wiring) relay switch "lights"
+#define TOWER_LIGHT_YELLOW             PD_11   // J16 DIO (wiring) relay switch "lights"
+#define TOWER_LIGHT_GREEN              PE_12   // J29 DIO (wiring) relay switch "lights"
 
 // VESC disable pins
 #define THROTTLE_VESC_DISABLE_PIN      PD_14  //(WIRING) Relay Switch 1

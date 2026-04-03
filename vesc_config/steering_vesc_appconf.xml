@@ -6,7 +6,7 @@
     <timeout_brake_current>0</timeout_brake_current>
     <can_status_rate_1>50</can_status_rate_1>
     <can_status_rate_2>5</can_status_rate_2>
-    <can_status_msgs_r1>0</can_status_msgs_r1>
+    <can_status_msgs_r1>8</can_status_msgs_r1>
     <can_status_msgs_r2>0</can_status_msgs_r2>
     <can_baud_rate>2</can_baud_rate>
     <pairing_done>0</pairing_done>

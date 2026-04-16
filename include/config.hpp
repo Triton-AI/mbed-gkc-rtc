@@ -14,6 +14,9 @@
 // USB Passthrough Feature - Comment out to disable USB joystick passthrough
 // #define ENABLE_USB_PASSTHROUGH
 
+// Severity level for logging (messages below this level will be ignored)
+#define LOG_SEVERITY_THRESHOLD LogPacket::Severity::FATAL
+
 // ============================================================================
 // Communication Interfaces
 // ============================================================================

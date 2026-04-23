@@ -67,6 +67,7 @@ namespace tritonai::gkc {
     float CommCanGetAngle();
     float CommCanGetSpeed();
     void CommCanSetBrakePosition(float brakePosition);
+    void CommCanConfigureBrakeBaudrate();
 
     // Utility functions
     template <typename T>

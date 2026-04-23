@@ -103,6 +103,7 @@ namespace tritonai::gkc {
         can1.frequency(CAN1_BAUDRATE);
         can2.frequency(CAN2_BAUDRATE);
         CommCanConfigureBrakeBaudrate(); // Set brake actuator to 500K baudrate mode
+        CommCanSetBrakePosition(EMERGENCY_BRAKE_PRESSURE, true); // Set initial brake position to emergency brake pressure
 
         static Thread canThread(osPriorityNormal,
                                 OS_STACK_SIZE,
@@ -278,13 +279,15 @@ namespace tritonai::gkc {
         return result;
     }
 
-    void CommCanSetBrakePosition(float brakePosition) {
+    void CommCanSetBrakePosition(float brakePosition, bool enableClutchOnly) {
         brakePosition = Clamp(brakePosition, 0.0f, 1.0f);
         unsigned int pos = (unsigned int)(brakePosition * (MAX_BRAKE_VAL - MIN_BRAKE_VAL)) + MIN_BRAKE_VAL;
 
-        static unsigned char buffer[8] = {0x0F, 0x4A, 0x00, 0xC0, 0, 0, 0, 0};
-        buffer[2] = pos & 0xFF;
-        buffer[3] = 0xC0 | ((pos >> 8) & 0x1F);
+        unsigned char clutchByte = enableClutchOnly ? 0x80 : 0xC0;
+
+        static unsigned char buffer[8] = {0x0F, 0x4A, 0x00, 0x00, 0, 0, 0, 0};
+        buffer[2] = pos & 0xFF;             // Takes the low 8 bits of pos and stores them in byte 2.
+        buffer[3] = clutchByte | ((pos >> 8) & 0x1F);   // Takes the high 5 bits of pos and stores them in byte 3.
 
         CanTransmitEid(BRAKE_CAN_ID, buffer, 8);
     }

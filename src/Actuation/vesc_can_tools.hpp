@@ -66,7 +66,7 @@ namespace tritonai::gkc {
     void CommCanSetAngle(float steerAngle);
     float CommCanGetAngle();
     float CommCanGetSpeed();
-    void CommCanSetBrakePosition(float brakePosition);
+    void CommCanSetBrakePosition(float brakePosition, bool enableClutchOnly = false);
     void CommCanConfigureBrakeBaudrate();
 
     // Utility functions

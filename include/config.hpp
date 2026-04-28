@@ -88,7 +88,7 @@
 // Brake pressure limits (PSI)
 #define MIN_BRAKE_VAL               600
 #define MAX_BRAKE_VAL               3000
-#define EMERGENCY_BRAKE_PRESSURE    1.0f  // override brake pressure in emergency
+#define EMERGENCY_BRAKE_PRESSURE    0.3f  // override brake pressure in emergency
 
 // CAN device IDs
 #define THROTTLE_CAN_ID             1

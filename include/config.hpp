@@ -81,6 +81,9 @@
 #define CAN1_BAUDRATE               500000
 
 // CAN bus 2 settings (currently in use)
+// Note: if the brake actuator is set to 250000,
+// set this to 250000 once to trigger the CommCanConfigureBrakeBaudrate() function in comm_can.cpp,
+// which will reconfigure the baudrate of the brake actuator to 500000.
 #define CAN2_RX                     PB_5 //(WIRING) Grey Can Bus
 #define CAN2_TX                     PB_6
 #define CAN2_BAUDRATE               500000

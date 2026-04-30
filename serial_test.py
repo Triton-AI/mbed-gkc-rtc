@@ -86,7 +86,7 @@ class GokartController:
         3: "ACTIVE",
         255: "EMERGENCY_STOP"
     }
-    
+    #def __init__(self, port='/dev/cu.usbmodem11203', baudrate=115200, debug=False):
     def __init__(self, port='/dev/ttyUSB0', baudrate=115200, debug=False):
         """Initialize serial connection to gokart"""
         self.ser = serial.Serial(port, baudrate)
@@ -331,6 +331,8 @@ def main():
     parser = argparse.ArgumentParser(description='Go-Kart Controller')
     
     # Basic connection settings
+    #parser.add_argument('--port', '-p', default='/dev/cu.usbmodem11203', 
+                      #help='Serial port (default: /dev/cu.usbmodem11203)')
     parser.add_argument('--port', '-p', default='/dev/ttyUSB0', 
                       help='Serial port (default: /dev/ttyUSB0)')
     parser.add_argument('--baudrate', '-b', type=int, default=115200, 

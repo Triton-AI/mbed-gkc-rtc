@@ -14,14 +14,17 @@
 // USB Passthrough Feature - Comment out to disable USB joystick passthrough
 // #define ENABLE_USB_PASSTHROUGH
 
+// Severity level for logging (messages below this level will be ignored)
+#define LOG_SEVERITY_THRESHOLD LogPacket::Severity::FATAL
+
 // ============================================================================
 // Communication Interfaces
 // ============================================================================
 
 // UART settings
 #define BAUD_RATE                      115200
-#define UART_RX_PIN                    PB_12   // Brake-out board
-#define UART_TX_PIN                    PB_13   // Brake-out board
+#define UART_RX_PIN                    PB_12   // Brake-out board // (WIRING) RS232 Terminator block
+#define UART_TX_PIN                    PB_13   // Brake-out board // (WIRING) RS232 Terminator block
 
 // Remote UART (ELRS receiver)
 #define REMOTE_UART_TX_PIN             PE_7    // 14th pin, 1st pin on DuraClik, UART7_RX, ELRS_TX
@@ -34,13 +37,13 @@
 #define SEND_SENSOR_INTERVAL_MS        20      // sensor packet send interval
 
 // Tower light indicators
-#define TOWER_LIGHT_RED                PD_15
-#define TOWER_LIGHT_YELLOW             PD_11
-#define TOWER_LIGHT_GREEN              PE_12
+#define TOWER_LIGHT_RED                PD_15   // J25 DIO (wiring) relay switch "lights"
+#define TOWER_LIGHT_YELLOW             PD_11   // J16 DIO (wiring) relay switch "lights"
+#define TOWER_LIGHT_GREEN              PE_12   // J29 DIO (wiring) relay switch "lights"
 
 // VESC disable pins
-#define THROTTLE_VESC_DISABLE_PIN      PD_14
-#define STEERING_VESC_DISABLE_PIN      PD_12
+#define THROTTLE_VESC_DISABLE_PIN      PD_14  //(WIRING) Relay Switch 1
+#define STEERING_VESC_DISABLE_PIN      PD_12  //(WIRING) Relay Switch 2
 
 
 // ============================================================================
@@ -73,12 +76,12 @@
 // ============================================================================
 
 // CAN bus 1 settings (nothing on this line currently)
-#define CAN1_RX                     PD_0
+#define CAN1_RX                     PD_0 //(WIRING) Black USB
 #define CAN1_TX                     PD_1
 #define CAN1_BAUDRATE               500000
 
 // CAN bus 2 settings (currently in use)
-#define CAN2_RX                     PB_5
+#define CAN2_RX                     PB_5 //(WIRING) Grey Can Bus
 #define CAN2_TX                     PB_6
 #define CAN2_BAUDRATE               500000
 
@@ -111,7 +114,7 @@
 // ============================================================================
 
 // Brake pressure sensor
-#define BRAKE_PRESSURE_SENSOR_PIN   PA_0
+#define BRAKE_PRESSURE_SENSOR_PIN   PA_0 //(WIRING) UNKOWN / UNUSED / VOLTAGE DEVIDER CIRCUITE
 
 // Wheel speed & VESC control
 #define WHEEL_DIAMETER_M            0.254f

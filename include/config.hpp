@@ -91,7 +91,7 @@
 // Brake pressure limits (PSI)
 #define MIN_BRAKE_VAL               600
 #define MAX_BRAKE_VAL               3000
-#define EMERGENCY_BRAKE_PRESSURE    0.3f  // override brake pressure in emergency
+#define EMERGENCY_BRAKE_PRESSURE    0.4f  // override brake pressure in emergency
 /*
 <= 0.1: 100PSI
 0.2: 250PSI
@@ -108,8 +108,8 @@
 #define THROTTLE_MAX_REVERSE_SPEED  20.0f
 
 // RC override speed limits
-#define RC_MAX_SPEED_FORWARD        5.0f
-#define RC_MAX_SPEED_REVERSE        5.0f
+#define RC_MAX_SPEED_FORWARD        10.0f
+#define RC_MAX_SPEED_REVERSE        10.0f
 
 
 // ============================================================================

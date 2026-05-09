@@ -91,7 +91,7 @@
 // Brake pressure limits (PSI)
 #define MIN_BRAKE_VAL               600
 #define MAX_BRAKE_VAL               3000
-#define EMERGENCY_BRAKE_PRESSURE    0.4f  // override brake pressure in emergency
+#define EMERGENCY_BRAKE_PRESSURE    0.35f  // override brake pressure in emergency
 /*
 <= 0.1: 100PSI
 0.2: 250PSI

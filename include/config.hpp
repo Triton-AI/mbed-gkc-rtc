@@ -70,6 +70,10 @@
 #define DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS  500
 #define RC_TAKEOVER_INTERVAL_MS                 100
 
+// AGX heartbeat monitoring
+#define DEFAULT_AGX_HEARTBEAT_INTERVAL_MS        100
+#define DEFAULT_AGX_HEARTBEAT_LOST_TOLERANCE_MS  500
+
 
 // ============================================================================
 // Actuation

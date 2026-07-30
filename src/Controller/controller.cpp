@@ -156,6 +156,20 @@ namespace tritonai::gkc {
         EmergencyStop();
     }
 
+    void Controller::OnAgxDisconnect() {
+        SendLog(LogPacket::Severity::INFO, "AGX heartbeat lost");
+        m_AgxConnected = false;
+
+        if(GetState() != GkcLifecycle::Active) {
+            SendLog(LogPacket::Severity::INFO, "AGX is not active, ignoring AGX heartbeat lost");
+            return;
+        }
+
+        SendLog(LogPacket::Severity::FATAL, "AGX controller heartbeat lost");
+        SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car
+        EmergencyStop();
+    }
+
     // Controller initialization
     Controller::Controller() :
         Watchable(DEFAULT_CONTROLLER_POLL_INTERVAL_MS, DEFAULT_CONTROLLER_POLL_LOST_TOLERANCE_MS, "Controller"),
@@ -169,6 +183,7 @@ namespace tritonai::gkc {
         m_BrakePressureSensor(this),
         m_CanSensorProvider(this),
         m_RcHeartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat")
+        m_AgxHeartbeat(DEFAULT_AGX_HEARTBEAT_INTERVAL_MS, DEFAULT_AGX_HEARTBEAT_LOST_TOLERANCE_MS, "AgxHeartBeat")
     {
         Attach(callback(this, &Controller::WatchdogCallback));
         m_KeepAliveThread.start(callback(this, &Controller::AgxHeartbeat));
@@ -183,6 +198,11 @@ namespace tritonai::gkc {
         if(m_StopOnRcDisconnect) {
             m_RcHeartbeat.Attach(callback(this, &Controller::OnRcDisconnect));
             m_Watchdog.AddToWatchlist(&m_RcHeartbeat);
+        }
+
+        if(m_StopOnAgxDisconnect) {
+            m_AgxHeartbeat.Attach(callback(this, &Controller::OnAgxDisconnect));
+            m_Watchdog.AddToWatchlist(&m_AgxHeartbeat);
         }
 
         m_SensorReader.RegisterProvider(&m_BrakePressureSensor);
@@ -243,6 +263,8 @@ namespace tritonai::gkc {
 
     void Controller::packet_callback(const HeartbeatGkcPacket& packet) {
         SendLog(LogPacket::Severity::DEBUG, "HeartbeatGkcPacket received");
+        m_AgxHeartbeat.IncCount();
+        m_AgxHeartbeat = true;
     }
 
     void Controller::packet_callback(const ConfigGkcPacket& packet) {

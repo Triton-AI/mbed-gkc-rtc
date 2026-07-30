@@ -82,6 +82,9 @@ namespace tritonai::gkc {
         Watchable m_RcHeartbeat;
         void OnRcDisconnect();
         bool m_StopOnRcDisconnect{true};
+        Watchable m_AgxHeartbeat;
+        void OnAgxDisconnect();
+        bool m_StopOnAgxDisconnect{true};
         void SetActuationValues(float throttle, float steering, float brake);
         DigitalOut m_Led{LED1};
         DigitalOut m_TowerLightRed{TOWER_LIGHT_RED, 0};
@@ -92,6 +95,7 @@ namespace tritonai::gkc {
         
         // Light control variables
         bool m_RcConnected{false};
+        bool m_AgxConnected{false};
         bool m_EmergencyActive{false};
         AutonomyMode m_CurrentAutonomyMode{AUTONOMOUS};
         chrono::time_point<chrono::steady_clock> m_LastLightToggle = chrono::steady_clock::now();

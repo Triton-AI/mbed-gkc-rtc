@@ -79,6 +79,30 @@ namespace tritonai::gkc {
         }
     }
 
+    void Controller::UpdateActuation() {
+        bool rcOk  = !m_StopOnRcDisconnect  || m_RcConnected;
+        bool agxOk = !m_StopOnAgxDisconnect || m_AgxConnected;
+        if ((!rcOk || !agxOk) && GetState() == GkcLifecycle::Active) {
+            SendLog(LogPacket::Severity::FATAL, "RC/AGX not connected during Active state, triggering EmergencyStop()");
+            EmergencyStop();
+        }
+
+        bool safeToDrive = (GetState() == GkcLifecycle::Active) &&
+                            rcOk && agxOk && !m_EmergencyActive;
+        if (!safeToDrive) {
+            // Fail-safe default: brake applied, zero throttle/steering
+            m_Actuation.FullRelRevCurrentBrake();
+            m_Actuation.SetBrakeCmd(EMERGENCY_BRAKE_PRESSURE);
+            m_Actuation.SetSteeringCmd(0.0);
+            m_Actuation.SetThrottleCmd(0.0);
+        } else {
+            // Keep the actuator's command fresh so it doesn't time out and decay
+            m_Actuation.SetSteeringCmd(m_LastSteeringCmd);
+            m_Actuation.SetThrottleCmd(m_LastThrottleCmd);
+            m_Actuation.SetBrakeCmd(m_LastBrakeCmd);
+        }
+    }
+
     void Controller::AgxHeartbeat() {
         HeartbeatGkcPacket packet;
         std::string state;
@@ -98,6 +122,7 @@ namespace tritonai::gkc {
             this->IncCount();
 
             UpdateLights();
+            UpdateActuation();
 
             // Log state changes
             switch(GetState()) {
@@ -143,31 +168,13 @@ namespace tritonai::gkc {
     }
 
     void Controller::OnRcDisconnect() {
-        SendLog(LogPacket::Severity::INFO, "Controller heartbeat lost");
+        SendLog(LogPacket::Severity::INFO, "RC heartbeat lost");
         m_RcConnected = false;
-
-        if(GetState() != GkcLifecycle::Active) {
-            SendLog(LogPacket::Severity::INFO, "Controller is not active, ignoring RC controller heartbeat lost");
-            return;
-        }
-
-        SendLog(LogPacket::Severity::FATAL, "RC controller heartbeat lost");
-        SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car
-        EmergencyStop();
     }
 
     void Controller::OnAgxDisconnect() {
         SendLog(LogPacket::Severity::INFO, "AGX heartbeat lost");
         m_AgxConnected = false;
-
-        if(GetState() != GkcLifecycle::Active) {
-            SendLog(LogPacket::Severity::INFO, "AGX is not active, ignoring AGX heartbeat lost");
-            return;
-        }
-
-        SendLog(LogPacket::Severity::FATAL, "AGX controller heartbeat lost");
-        SetActuationValues(0.0, 0.0, EMERGENCY_BRAKE_PRESSURE); // Set the actuation values to stop the car
-        EmergencyStop();
     }
 
     // Controller initialization
@@ -182,7 +189,7 @@ namespace tritonai::gkc {
         m_RcController(this, this),
         m_BrakePressureSensor(this),
         m_CanSensorProvider(this),
-        m_RcHeartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat")
+        m_RcHeartbeat(DEFAULT_RC_HEARTBEAT_INTERVAL_MS, DEFAULT_RC_HEARTBEAT_LOST_TOLERANCE_MS, "RCControllerHeartBeat"),
         m_AgxHeartbeat(DEFAULT_AGX_HEARTBEAT_INTERVAL_MS, DEFAULT_AGX_HEARTBEAT_LOST_TOLERANCE_MS, "AgxHeartBeat")
     {
         Attach(callback(this, &Controller::WatchdogCallback));

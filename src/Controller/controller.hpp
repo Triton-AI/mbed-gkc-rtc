@@ -31,7 +31,6 @@ namespace tritonai::gkc {
         Controller();
 
         void AgxHeartbeat();
-        void UpdateLights();
 
     protected:
         // GkcPacketSubscriber API
@@ -86,6 +85,11 @@ namespace tritonai::gkc {
         void OnAgxDisconnect();
         bool m_StopOnAgxDisconnect{true};
         void SetActuationValues(float throttle, float steering, float brake);
+        void UpdateLights();
+        void UpdateActuation();
+        float m_LastThrottleCmd{0.0f};
+        float m_LastSteeringCmd{0.0f};
+        float m_LastBrakeCmd{EMERGENCY_BRAKE_PRESSURE};
         DigitalOut m_Led{LED1};
         DigitalOut m_TowerLightRed{TOWER_LIGHT_RED, 0};
         DigitalOut m_TowerLightYellow{TOWER_LIGHT_YELLOW, 0};

@@ -36,8 +36,8 @@ namespace tritonai::gkc {
             return;
         }
 
-        // If RC is not connected, flash yellow at 1Hz
-        if (!m_RcConnected) {
+        // If RC or AGX is not connected, flash yellow at 1Hz
+        if (!LinksOk()) {
             m_TowerLightYellow = m_LightState;
             return;
         }
@@ -79,37 +79,64 @@ namespace tritonai::gkc {
         }
     }
 
-    void Controller::UpdateActuation() {
+    bool Controller::LinksOk() const {
         bool rcOk  = !m_StopOnRcDisconnect  || m_RcConnected;
         bool agxOk = !m_StopOnAgxDisconnect || m_AgxConnected;
-        if ((!rcOk || !agxOk) && GetState() == GkcLifecycle::Active) {
+        return rcOk && agxOk;
+    }
+
+    void Controller::ApplyFailSafe() {
+        // Fail-safe default: brake current on the drive motor, emergency brake pressure, steering centered.
+        // No throttle command here: a speed command would override the brake current on the VESC.
+        m_Actuation.FullRelRevCurrentBrake();
+        m_Actuation.SetBrakeCmd(EMERGENCY_BRAKE_PRESSURE);
+        m_Actuation.SetSteeringCmd(0.0);
+
+        // Forget the last drive command so it is never replayed after re-activation
+        m_LastThrottleCmd = 0.0f;
+        m_LastSteeringCmd = 0.0f;
+        m_LastBrakeCmd = EMERGENCY_BRAKE_PRESSURE;
+    }
+
+    void Controller::UpdateActuation() {
+        ScopedLock<Mutex> lock(m_ControlLock);
+
+        if (!LinksOk() && GetState() == GkcLifecycle::Active) {
+            m_LinkLossLatched = true;
             SendLog(LogPacket::Severity::FATAL, "RC/AGX not connected during Active state, triggering EmergencyStop()");
             EmergencyStop();
         }
 
         bool safeToDrive = (GetState() == GkcLifecycle::Active) &&
-                            rcOk && agxOk && !m_EmergencyActive;
+                            LinksOk() && !m_EmergencyActive && !m_LinkLossLatched;
         if (!safeToDrive) {
-            // Fail-safe default: brake applied, zero throttle/steering
-            m_Actuation.FullRelRevCurrentBrake();
-            m_Actuation.SetBrakeCmd(EMERGENCY_BRAKE_PRESSURE);
+            ApplyFailSafe();
+            return;
+        }
+
+        auto sinceLastCmd = std::chrono::steady_clock::now() - m_LastCmdTime;
+        if (sinceLastCmd > std::chrono::milliseconds(CONTROL_CMD_STALE_MS)) {
+            // No fresh command from AGX/RC: stop instead of replaying a stale one forever
             m_Actuation.SetSteeringCmd(0.0);
             m_Actuation.SetThrottleCmd(0.0);
-        } else {
-            // Keep the actuator's command fresh so it doesn't time out and decay
-            m_Actuation.SetSteeringCmd(m_LastSteeringCmd);
-            m_Actuation.SetThrottleCmd(m_LastThrottleCmd);
-            m_Actuation.SetBrakeCmd(m_LastBrakeCmd);
+            m_Actuation.SetBrakeCmd(EMERGENCY_BRAKE_PRESSURE);
+            return;
         }
+
+        // Keep the actuator's command fresh so it doesn't time out and decay
+        m_Actuation.SetSteeringCmd(m_LastSteeringCmd);
+        m_Actuation.SetThrottleCmd(m_LastThrottleCmd);
+        m_Actuation.SetBrakeCmd(m_LastBrakeCmd);
     }
 
     void Controller::AgxHeartbeat() {
         HeartbeatGkcPacket packet;
         std::string state;
         std::string oldState;
-
-        //TODO: (Moises) TEMP
-        GkcStateMachine::Initialize();
+        {
+            ScopedLock<Mutex> lock(m_ControlLock);
+            GkcStateMachine::Initialize();
+        }
 
         while(true) {
             auto loopStart = std::chrono::steady_clock::now();
@@ -167,14 +194,26 @@ namespace tritonai::gkc {
         }
     }
 
+    // The watchdog keeps calling these on every pass while the heartbeat is missing,
+    // so only act on the connected -> lost transition.
     void Controller::OnRcDisconnect() {
-        SendLog(LogPacket::Severity::INFO, "RC heartbeat lost");
+        ScopedLock<Mutex> lock(m_ControlLock);
+        if (!m_RcConnected)
+            return;
+
         m_RcConnected = false;
+        SendLog(LogPacket::Severity::INFO, "RC heartbeat lost");
+        UpdateActuation(); // Stop now instead of waiting for the next heartbeat loop
     }
 
     void Controller::OnAgxDisconnect() {
-        SendLog(LogPacket::Severity::INFO, "AGX heartbeat lost");
+        ScopedLock<Mutex> lock(m_ControlLock);
+        if (!m_AgxConnected)
+            return;
+
         m_AgxConnected = false;
+        SendLog(LogPacket::Severity::INFO, "AGX heartbeat lost");
+        UpdateActuation(); // Stop now instead of waiting for the next heartbeat loop
     }
 
     // Controller initialization
@@ -270,8 +309,9 @@ namespace tritonai::gkc {
 
     void Controller::packet_callback(const HeartbeatGkcPacket& packet) {
         SendLog(LogPacket::Severity::DEBUG, "HeartbeatGkcPacket received");
+        ScopedLock<Mutex> lock(m_ControlLock);
         m_AgxHeartbeat.IncCount();
-        m_AgxHeartbeat = true;
+        m_AgxConnected = true;
     }
 
     void Controller::packet_callback(const ConfigGkcPacket& packet) {
@@ -280,6 +320,7 @@ namespace tritonai::gkc {
 
     void Controller::packet_callback(const StateTransitionGkcPacket& packet) {
         SendLog(LogPacket::Severity::INFO, "StateTransitionGkcPacket received");
+        ScopedLock<Mutex> lock(m_ControlLock);
 
         switch(packet.requested_state) {
         case GkcLifecycle::Uninitialized:
@@ -313,6 +354,7 @@ namespace tritonai::gkc {
     // TODO: Implement the control packet callback, partially done
     void Controller::packet_callback(const ControlGkcPacket& packet) {
         SendLog(LogPacket::Severity::INFO, "ControlGkcPacket received");
+        ScopedLock<Mutex> lock(m_ControlLock);
         if(GetState() != GkcLifecycle::Active) {
             SendLog(LogPacket::Severity::INFO, "Controller is not active, ignoring ControlGkcPacket");
             return;
@@ -355,11 +397,18 @@ namespace tritonai::gkc {
     }
 
     void Controller::packet_callback(const RCControlGkcPacket& packet) {
+        ScopedLock<Mutex> lock(m_ControlLock);
         m_RcHeartbeat.IncCount();
         m_RcConnected = true;
 
+        // A link-loss stop is only cleared by the operator cycling the RC e-stop once both links are back
+        if(!packet.is_active && m_LinkLossLatched && LinksOk()) {
+            m_LinkLossLatched = false;
+            SendLog(LogPacket::Severity::INFO, "RC e-stop cycled with RC and AGX connected, clearing link-loss stop");
+        }
+
         // Update light tower state based on emergency stop status
-        m_EmergencyActive = !packet.is_active;
+        m_EmergencyActive = !packet.is_active || m_LinkLossLatched;
 
         // Update autonomy mode for light system
         m_CurrentAutonomyMode = packet.autonomy_mode;
@@ -450,6 +499,18 @@ namespace tritonai::gkc {
 
     // TODO: Implement on_activate
     StateTransitionResult Controller::OnActivate(const GkcLifecycle& lastState) {
+        if(m_LinkLossLatched || !LinksOk()) {
+            // RC packets retry activation continuously, so only log the first refusal
+            if(!m_ActivationBlockedLogged) {
+                SendLog(LogPacket::Severity::WARNING, m_LinkLossLatched ?
+                    "Activation refused: link-loss stop latched, cycle the RC e-stop with RC and AGX connected" :
+                    "Activation refused: RC/AGX not connected");
+                m_ActivationBlockedLogged = true;
+            }
+            return StateTransitionResult::FAILURE;
+        }
+        m_ActivationBlockedLogged = false;
+
         SendLog(LogPacket::Severity::INFO, "Controller activating");
         m_ThrottleVescDisable = 0;
         m_SteeringVescDisable = 0;
@@ -480,11 +541,14 @@ namespace tritonai::gkc {
     void Controller::SetActuationValues(float throttle, float steering, float brake) {
         if(GetState() != GkcLifecycle::Active) {
             SendLog(LogPacket::Severity::INFO, "Controller is not active, ignoring SetActuationValues");
-            m_Actuation.FullRelRevCurrentBrake();
-            m_Actuation.SetBrakeCmd(brake);
-            m_Actuation.SetSteeringCmd(0.0);
+            ApplyFailSafe();
             return;
         }
+
+        m_LastSteeringCmd = steering;
+        m_LastThrottleCmd = throttle;
+        m_LastBrakeCmd = brake;
+        m_LastCmdTime = std::chrono::steady_clock::now();
 
         m_Actuation.SetSteeringCmd(steering);
         m_Actuation.SetThrottleCmd(throttle);

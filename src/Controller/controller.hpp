@@ -17,6 +17,7 @@
 #include "StateMachine/state_machine.hpp"
 #include "Sensor/brake_pressure_sensor.hpp"
 #include "Sensor/can_sensor_provider.hpp"
+#include "platform/ScopedLock.h"
 #include <chrono>
 
 namespace tritonai::gkc {
@@ -87,9 +88,15 @@ namespace tritonai::gkc {
         void SetActuationValues(float throttle, float steering, float brake);
         void UpdateLights();
         void UpdateActuation();
+        void ApplyFailSafe();
+        bool LinksOk() const;
         float m_LastThrottleCmd{0.0f};
         float m_LastSteeringCmd{0.0f};
         float m_LastBrakeCmd{EMERGENCY_BRAKE_PRESSURE};
+        std::chrono::steady_clock::time_point m_LastCmdTime = std::chrono::steady_clock::now();
+        bool m_LinkLossLatched{false};          // Set on RC/AGX loss while Active; cleared by RC e-stop toggle
+        bool m_ActivationBlockedLogged{false};
+        Mutex m_ControlLock;                    // Guards state transitions and actuation across threads
         DigitalOut m_Led{LED1};
         DigitalOut m_TowerLightRed{TOWER_LIGHT_RED, 0};
         DigitalOut m_TowerLightYellow{TOWER_LIGHT_YELLOW, 0};

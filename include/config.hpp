@@ -73,6 +73,7 @@
 // AGX heartbeat monitoring
 #define DEFAULT_AGX_HEARTBEAT_INTERVAL_MS        100
 #define DEFAULT_AGX_HEARTBEAT_LOST_TOLERANCE_MS  500
+#define CONTROL_CMD_STALE_MS                     500
 
 
 // ============================================================================
